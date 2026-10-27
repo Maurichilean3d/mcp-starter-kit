@@ -99,3 +99,18 @@ El constructor ejecuta una IA que **corre comandos y escribe archivos en tu equi
 ### Apps que necesitan arrancar de forma especial
 
 Algunas apps solo se pueden controlar si se abren con un parámetro (por ejemplo `--control 5000`) o si traen su propio puente MCP. En ese caso opencode crea `scripts/preparar-app.mjs` dentro del MCP: abre la app como corresponde, espera a que esté lista y registra lo extra. El lanzador `Abrir-<nombre>` lo ejecuta solo antes de abrir opencode, así que sigue siendo un único doble clic.
+
+
+## Lanzadores de cada MCP (version 1.1)
+
+Cada MCP creado trae, junto a su carpeta:
+
+- `Abrir-<nombre>.bat` / `.command`: abre la app y opencode a la vez. Si la app ya esta abierta (o su puente ya responde) no la abre dos veces, y si declara un puente local **espera** a que responda antes de abrir opencode.
+- `Cerrar-<nombre>.bat` / `.command`: cierra opencode y los servidores de ese MCP (no cierra la app, para no perder trabajo).
+- `node scripts/estado-mcp.mjs`: diagnostico de ese MCP (compilado, dependencias, opencode, puente, prueba). Se ejecuta solo si el puente no responde.
+
+Si la app tiene un puente local, se declara en `.mcp-constructor.json` (`"puente": {"host","port","ping","timeoutS"}`) o lo devuelve `scripts/preparar-app.mjs`. Hay ayudas listas en `scripts/lib-arranque.mjs`.
+
+## Sobrescribir un MCP existente
+
+Si el nombre ya existe, el constructor pregunta si quieres sobrescribirlo. Al aceptar se borra esa carpeta y se crea de nuevo (util si el anterior quedo roto).

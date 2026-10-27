@@ -43,6 +43,9 @@ const ARCHIVOS = [
   "scripts/asegurar-clis.mjs",
   "scripts/lanzar.mjs",
   "scripts/abrir-app-y-opencode.mjs",
+  "scripts/lib-arranque.mjs",
+  "scripts/cerrar-mcp.mjs",
+  "scripts/estado-mcp.mjs",
   "scripts/asegurar-node.bat",
   "scripts/asegurar-node.sh",
   "scripts/instalar-node.ps1",
@@ -211,6 +214,27 @@ node scripts/abrir-app-y-opencode.mjs || pausa
   const rutaCommand = path.join(carpeta, `${nombre}.command`);
   await writeFile(rutaCommand, command, "utf8");
   await chmod(rutaCommand, 0o755).catch(() => {});
+
+  // Cerrar-<slug>: cierra opencode y los servidores de ESTE MCP (no la app).
+  const batCerrar = `@echo off
+rem Cierra opencode y los servidores de este MCP (no cierra ${textoApp}).
+cd /d "%~dp0"
+set "PATH=%APPDATA%\\npm;%PATH%"
+node scripts\\cerrar-mcp.mjs
+pause
+`;
+  await writeFile(path.join(carpeta, `Cerrar-${slug}.bat`), batCerrar.replace(/\r?\n/g, "\r\n"), "utf8");
+  const cmdCerrar = `#!/bin/bash
+# Cierra opencode y los servidores de este MCP (no cierra ${textoApp}).
+cd "$(dirname "$0")" || exit 1
+[ -x /opt/homebrew/bin/brew ] && eval "$(/opt/homebrew/bin/brew shellenv)"
+[ -x /usr/local/bin/brew ] && eval "$(/usr/local/bin/brew shellenv)"
+node scripts/cerrar-mcp.mjs
+read -n 1 -s -r -p "Presiona una tecla para cerrar..."; echo
+`;
+  const rutaCerrar = path.join(carpeta, `Cerrar-${slug}.command`);
+  await writeFile(rutaCerrar, cmdCerrar, "utf8");
+  await chmod(rutaCerrar, 0o755).catch(() => {});
   return nombre;
 }
 
@@ -285,7 +309,7 @@ Crea \`README.md\` en espanol: que hace el MCP, tabla de herramientas (nombre, q
 
 # Fase 6 - Arranque conjunto (SOLO si la app lo necesita)
 
-El proyecto ya trae un lanzador generico (\`Abrir-${slug}.bat\` / \`.command\`) que abre **${app}** y opencode a la vez. Si en la Fase 1 descubriste que la app debe arrancar de forma especial para poder controlarla (un parametro como \`--control\`, \`--port\` o \`--remote-debugging-port\`, un servidor o puente propio, un plugin que hay que activar), NO crees \`.bat\` propios ni dependas de la app de escritorio de opencode. Crea en su lugar \`scripts/preparar-app.mjs\` (solo modulos de Node, funciona en Windows y Mac) con este contrato:
+El proyecto ya trae un lanzador generico (\`Abrir-${slug}.bat\` / \`.command\`) que abre **${app}** y opencode a la vez. Si en la Fase 1 descubriste que la app debe arrancar de forma especial para poder controlarla (un parametro como \`--control\`, \`--port\` o \`--remote-debugging-port\`, un servidor o puente propio, un plugin que hay que activar), NO crees \`.bat\` propios ni dependas de la app de escritorio de opencode. Crea en su lugar \`scripts/preparar-app.mjs\` (solo modulos de Node, funciona en Windows y Mac) con este contrato. Puedes importar \`./lib-arranque.mjs\` (\`esperarPuerto\`, \`puertoAbierto\`, \`appEnEjecucion\`):
 
 \`\`\`js
 export default async function preparar({ raiz, app, rutaApp, slug }) {
@@ -293,9 +317,15 @@ export default async function preparar({ raiz, app, rutaApp, slug }) {
   // 2. Espera a que este lista (con limite de tiempo y un error claro si no lo logra).
   // 3. Si la app trae su propio puente/servidor MCP, registralo en opencode.json del proyecto como
   //    mcp.<nombre> = { type: "local", command: [...] }  (objeto plano dentro de "mcp").
-  return { appAbierta: true, nombreMcp: slug + "_estado" }; // nombre con el que se registrara el MCP de ESTE proyecto, distinto de los que anadiste
+  return {
+    appAbierta: true,
+    nombreMcp: slug + "_estado", // nombre con el que se registrara el MCP de ESTE proyecto, distinto de los que anadiste
+    puente: { host: "127.0.0.1", port: 9877, ping: false, timeoutS: 60 }, // SOLO si la app expone un puerto/puente local
+  };
 }
 \`\`\`
+
+Si la app tiene un puente local en un puerto, el lanzador lo espera antes de abrir opencode, evita abrir la app dos veces si el puente ya responde, y \`Cerrar-${slug}.bat\` / \`node scripts/estado-mcp.mjs\` lo usan para cerrar y diagnosticar. Si el puerto es fijo y no depende de la ejecucion, puedes declararlo ademas en \`.mcp-constructor.json\` como \`"puente": { "host", "port", "ping", "timeoutS" }\`.
 
 Si la app NO necesita nada especial, no crees ese archivo.
 
