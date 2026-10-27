@@ -2,7 +2,7 @@
  * Crea la carpeta de un MCP nuevo a partir de esta plantilla y redacta el prompt
  * que recibira opencode para construirlo.
  */
-import { chmod, copyFile, mkdir, readFile, writeFile, access } from "node:fs/promises";
+import { chmod, copyFile, mkdir, readFile, writeFile, access, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -80,14 +80,40 @@ const PERMISOS_OPENCODE = {
   },
 };
 
+/** Carpeta donde se creara el MCP con ese nombre. */
+export function carpetaDeProyecto(slug) {
+  return path.join(carpetaSalida(), slug);
+}
+
+export async function proyectoExiste(slug) {
+  return existe(carpetaDeProyecto(slug));
+}
+
 /**
- * Crea el proyecto. Devuelve { carpeta, slug }.
- * Lanza un Error con mensaje claro si ya existe una carpeta con ese nombre.
+ * Crea el proyecto. Devuelve { carpeta, slug, lanzador }.
+ * Si ya existe una carpeta con ese nombre: con `sobrescribir` la borra y empieza de cero
+ * (aunque el MCP anterior estuviera roto); sin `sobrescribir` lanza un Error con code "EXISTE".
  */
-export async function crearProyecto({ app, rutaApp, objetivo, slug }) {
-  const carpeta = path.join(carpetaSalida(), slug);
+export async function crearProyecto({ app, rutaApp, objetivo, slug, sobrescribir = false }) {
+  if (!/^[a-z0-9-]{1,40}$/.test(slug)) throw new Error("Nombre de proyecto invalido.");
+  const carpeta = carpetaDeProyecto(slug);
   if (await existe(carpeta)) {
-    throw new Error(`Ya existe la carpeta ${carpeta}. Elige otro nombre para el MCP o borra la carpeta anterior.`);
+    if (!sobrescribir) {
+      const e = new Error(`Ya existe la carpeta ${carpeta}. Elige otro nombre o marca "Sobrescribir".`);
+      e.code = "EXISTE";
+      throw e;
+    }
+    // Seguridad: solo borramos lo que esta dentro de la carpeta de salida y es un proyecto del constructor.
+    const base = path.resolve(carpetaSalida());
+    if (path.dirname(path.resolve(carpeta)) !== base) throw new Error("Ruta de proyecto no valida.");
+    if (!(await existe(path.join(carpeta, ".mcp-constructor.json"))) && !(await existe(path.join(carpeta, "package.json")))) {
+      throw new Error(`La carpeta ${carpeta} no parece un MCP del constructor; no la borro. Eliminala a mano o usa otro nombre.`);
+    }
+    try {
+      await rm(carpeta, { recursive: true, force: true, maxRetries: 5, retryDelay: 400 });
+    } catch (e) {
+      throw new Error(`No pude borrar el MCP anterior (${e.code ?? e.message}). Cierra opencode, la app y cualquier terminal que use esa carpeta y reintenta.`);
+    }
   }
 
   await mkdir(path.join(carpeta, "src", "tools"), { recursive: true });

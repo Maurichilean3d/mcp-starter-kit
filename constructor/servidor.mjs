@@ -19,7 +19,7 @@ import { readdir, readFile, access } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { listarApps } from "./apps.mjs";
-import { carpetaSalida, nombrePlataforma, slugify } from "./proyecto.mjs";
+import { carpetaSalida, nombrePlataforma, slugify, proyectoExiste } from "./proyecto.mjs";
 import { activarMcp, detectarOpencode, ejecutarTrabajo, marcarActivado, Trabajo } from "./trabajo.mjs";
 import { ampliarPath } from "../scripts/asegurar-clis.mjs";
 
@@ -137,7 +137,7 @@ function validarEntrada(cuerpo) {
     return { error: "El modelo debe tener el formato proveedor/modelo (por ejemplo anthropic/claude-sonnet-4)." };
   }
 
-  return { app, rutaApp, objetivo, slug, modelo };
+  return { app, rutaApp, objetivo, slug, modelo, sobrescribir: cuerpo.sobrescribir === true };
 }
 
 // ---------- rutas ----------
@@ -168,6 +168,9 @@ async function manejarApi(req, res, url) {
     if (trabajoActivo && !trabajoActivo.terminado) return responderJson(res, 409, { error: "Ya hay una construccion en curso." });
     const entrada = validarEntrada(await leerJson(req));
     if (entrada.error) return responderJson(res, 400, { error: entrada.error });
+    if (!entrada.sobrescribir && (await proyectoExiste(entrada.slug))) {
+      return responderJson(res, 409, { existe: true, slug: entrada.slug, error: `Ya existe un MCP llamado "${entrada.slug}".` });
+    }
     const id = randomBytes(6).toString("hex");
     const trabajo = new Trabajo(id);
     trabajos.set(id, trabajo);

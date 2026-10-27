@@ -254,14 +254,14 @@ function fallar(trabajo, pasoId, mensaje) {
   trabajo.emitir({ tipo: "fin", ok: false, mensaje });
 }
 
-export async function ejecutarTrabajo(trabajo, { app, rutaApp, objetivo, slug, modelo }) {
+export async function ejecutarTrabajo(trabajo, { app, rutaApp, objetivo, slug, modelo, sobrescribir }) {
   trabajo.emitir({ tipo: "pasos", pasos: PASOS });
   let carpeta;
   try {
     // 1. preparar
     trabajo.paso("preparar", "en_curso");
     let lanzador;
-    ({ carpeta, lanzador } = await crearProyecto({ app, rutaApp, objetivo, slug }));
+    ({ carpeta, lanzador } = await crearProyecto({ app, rutaApp, objetivo, slug, sobrescribir }));
     trabajo.log(`Proyecto creado en: ${carpeta}\n`);
     trabajo.paso("preparar", "ok", carpeta);
 
