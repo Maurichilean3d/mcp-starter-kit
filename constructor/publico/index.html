@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Constructor de MCP</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --texto: #1d1d1b; --suave: #6b6a65; --borde: #e3e1da;
+    --acento: #c2410c; --acento-fondo: #fff1e8; --ok: #15803d; --ok-fondo: #e8f6ee;
+    --aviso: #b45309; --aviso-fondo: #fdf3e0; --error: #b91c1c; --error-fondo: #fdeceb;
+    --codigo: #151513; --codigo-texto: #e8e6df;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161614; --panel: #201f1c; --texto: #efede6; --suave: #a09e95; --borde: #34322d;
+      --acento: #fb923c; --acento-fondo: #3a2314; --ok: #4ade80; --ok-fondo: #14291c;
+      --aviso: #fbbf24; --aviso-fondo: #33270f; --error: #f87171; --error-fondo: #3a1716;
+      --codigo: #0e0e0d; --codigo-texto: #e8e6df;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--texto); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -0.02em; }
+  .sub { color: var(--suave); margin: 0; }
+  .pills { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .pill { font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--borde); background: var(--panel); color: var(--suave); }
+  .pill.ok { color: var(--ok); background: var(--ok-fondo); border-color: transparent; }
+  .pill.mal { color: var(--error); background: var(--error-fondo); border-color: transparent; }
+  .tarjeta { background: var(--panel); border: 1px solid var(--borde); border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; }
+  .tarjeta h2 { font-size: 16px; margin: 0 0 12px; }
+  .num { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--acento); color: #fff; font-size: 12px; margin-right: 8px; }
+  input[type=text], textarea, select { width: 100%; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--borde); background: var(--bg); color: var(--texto); font: inherit; }
+  input:focus, textarea:focus { outline: 2px solid var(--acento); outline-offset: 1px; }
+  textarea { min-height: 84px; resize: vertical; }
+  label.campo { display: block; font-size: 13px; color: var(--suave); margin: 12px 0 4px; }
+  .lista { max-height: 270px; overflow: auto; border: 1px solid var(--borde); border-radius: 10px; margin-top: 10px; }
+  .app { display: flex; width: 100%; text-align: left; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--borde); background: transparent; color: inherit; font: inherit; cursor: pointer; }
+  .app:last-child { border-bottom: 0; }
+  .app:hover { background: var(--acento-fondo); }
+  .app[aria-pressed=true] { background: var(--acento-fondo); font-weight: 600; box-shadow: inset 3px 0 0 var(--acento); }
+  .vacio { padding: 14px; color: var(--suave); }
+  button.principal { background: var(--acento); color: #fff; border: 0; padding: 10px 18px; border-radius: 10px; font: inherit; font-weight: 600; cursor: pointer; }
+  button.principal:disabled { opacity: .45; cursor: not-allowed; }
+  button.sec { background: transparent; color: var(--texto); border: 1px solid var(--borde); padding: 8px 14px; border-radius: 10px; font: inherit; cursor: pointer; }
+  button.sec:hover { border-color: var(--acento); }
+  button.enlace { background: none; border: 0; color: var(--acento); cursor: pointer; padding: 0; font: inherit; text-decoration: underline; }
+  .fila { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .consent { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: var(--suave); margin: 4px 0 14px; }
+  .consent input { margin-top: 4px; }
+  .banner { padding: 12px 14px; border-radius: 10px; margin-bottom: 16px; font-size: 14px; }
+  .banner.aviso { background: var(--aviso-fondo); color: var(--aviso); }
+  .banner.error { background: var(--error-fondo); color: var(--error); }
+  .banner.ok { background: var(--ok-fondo); color: var(--ok); }
+  ol.pasos { list-style: none; margin: 0 0 14px; padding: 0; }
+  ol.pasos li { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; }
+  .icono { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 50%; font-size: 13px; border: 2px solid var(--borde); color: var(--suave); }
+  .icono.ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .icono.error { background: var(--error); border-color: var(--error); color: #fff; }
+  .icono.en_curso { border-color: var(--acento); border-top-color: transparent; animation: gira 0.9s linear infinite; }
+  @keyframes gira { to { transform: rotate(360deg); } }
+  .detalle { color: var(--suave); font-size: 13px; }
+  pre.log { background: var(--codigo); color: var(--codigo-texto); border-radius: 10px; padding: 12px; height: 280px; overflow: auto; font: 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-word; margin: 8px 0 0; }
+  .herramienta { padding: 10px 0; border-bottom: 1px solid var(--borde); }
+  .herramienta:last-child { border-bottom: 0; }
+  .herramienta code { font: 600 13.5px ui-monospace, Menlo, Consolas, monospace; }
+  .herramienta p { margin: 2px 0 0; color: var(--suave); font-size: 13.5px; }
+  .badge { font-size: 11.5px; padding: 1px 8px; border-radius: 999px; margin-left: 8px; font-weight: 600; }
+  .badge.lectura { background: var(--ok-fondo); color: var(--ok); }
+  .badge.modifica { background: var(--aviso-fondo); color: var(--aviso); }
+  .badge.destructiva { background: var(--error-fondo); color: var(--error); }
+  .badge.sin { background: var(--bg); color: var(--suave); border: 1px solid var(--borde); }
+  .proyecto { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--borde); flex-wrap: wrap; }
+  .proyecto:last-child { border-bottom: 0; }
+  .oculto { display: none !important; }
+  details summary { cursor: pointer; color: var(--suave); font-size: 13.5px; margin-top: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Constructor de MCP</h1>
+      <p class="sub">Elige una aplicación de tu computador y opencode escribe el MCP por ti.</p>
+    </div>
+    <div class="pills" id="estado"></div>
+  </header>
+
+  <div id="avisos"></div>
+
+  <section class="tarjeta" id="t-app">
+    <h2><span class="num">1</span>Elige la aplicación</h2>
+    <input type="text" id="buscar" placeholder="Buscar en tus aplicaciones instaladas…" autocomplete="off">
+    <div class="lista" id="lista"><div class="vacio">Buscando aplicaciones instaladas…</div></div>
+    <p class="detalle" style="margin:10px 0 0">¿No aparece? <button class="enlace" id="manual-btn" type="button">Escribe el nombre a mano</button></p>
+    <div id="manual" class="oculto">
+      <label class="campo" for="manual-nombre">Nombre de la aplicación</label>
+      <input type="text" id="manual-nombre" maxlength="100" placeholder="Ej: Spotify">
+      <label class="campo" for="manual-ruta">Ruta del programa (opcional)</label>
+      <input type="text" id="manual-ruta" maxlength="500" placeholder="Ej: C:\Program Files\App\app.exe  o  /Applications/App.app">
+    </div>
+    <p class="detalle" id="elegida" style="margin:12px 0 0"></p>
+  </section>
+
+  <section class="tarjeta" id="t-objetivo">
+    <h2><span class="num">2</span>¿Qué quieres poder hacer con ella?</h2>
+    <textarea id="objetivo" maxlength="2000" placeholder="Ej: Quiero que la IA pueda buscar mis notas, leerlas y crear una nueva. Primero solo lectura.&#10;&#10;Si lo dejas vacío, opencode propondrá las herramientas más útiles y seguras."></textarea>
+    <label class="campo" for="nombre">Nombre del MCP (se usa en opencode)</label>
+    <input type="text" id="nombre" maxlength="40" placeholder="Se completa solo con el nombre de la app">
+    <details>
+      <summary>Opciones avanzadas</summary>
+      <label class="campo" for="modelo">Modelo para opencode (opcional, formato proveedor/modelo)</label>
+      <input type="text" id="modelo" maxlength="100" placeholder="Vacío = el modelo que ya tienes configurado en opencode">
+    </details>
+  </section>
+
+  <section class="tarjeta" id="t-construir">
+    <h2><span class="num">3</span>Construir</h2>
+    <label class="consent">
+      <input type="checkbox" id="acepto">
+      <span>Entiendo que opencode investigará la app y <b>ejecutará comandos y escribirá archivos</b> en mi computador (en la carpeta del MCP) con aprobación automática. Hay bloqueos para comandos de borrado, pero no es un aislamiento completo.</span>
+    </label>
+    <div class="fila">
+      <button class="principal" id="construir" disabled>Construir mi MCP</button>
+      <span class="detalle" id="ayuda-construir"></span>
+    </div>
+  </section>
+
+  <section class="tarjeta oculto" id="t-progreso">
+    <h2>Progreso</h2>
+    <ol class="pasos" id="pasos"></ol>
+    <div class="fila">
+      <button class="sec" id="cancelar">Cancelar</button>
+      <button class="enlace" id="ver-log" type="button">Ocultar detalle</button>
+    </div>
+    <pre class="log" id="log"></pre>
+    <div id="fin" class="oculto" style="margin-top:12px"></div>
+  </section>
+
+  <section class="tarjeta oculto" id="t-resultado">
+    <h2>Herramientas creadas</h2>
+    <div class="banner aviso">Revisa la lista antes de activar: estas herramientas las escribió una IA y podrán actuar sobre tu aplicación y tus datos.</div>
+    <div id="herramientas"></div>
+    <div class="fila" style="margin-top:14px">
+      <button class="principal" id="activar">Activar en opencode</button>
+      <button class="sec" id="abrir">Abrir carpeta del proyecto</button>
+    </div>
+    <div id="activado" class="oculto" style="margin-top:12px"></div>
+  </section>
+
+  <section class="tarjeta" id="t-proyectos">
+    <h2>Mis MCP creados</h2>
+    <div id="proyectos"><span class="detalle">Todavía no has creado ninguno.</span></div>
+  </section>
+
+  <p class="detalle"><button class="enlace" id="salir" type="button">Cerrar el constructor</button></p>
+</main>
+
+<script>
+const TOKEN = "__TOKEN__";
+const $ = (id) => document.getElementById(id);
+
+async function api(ruta, opciones = {}) {
+  const r = await fetch(ruta, { ...opciones, headers: { "x-token": TOKEN, "content-type": "application/json" } });
+  const datos = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(datos.error || r.statusText);
+  return datos;
+}
+
+function el(etiqueta, props = {}, ...hijos) {
+  const e = document.createElement(etiqueta);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v);
+  }
+  for (const h of hijos) e.append(h);
+  return e;
+}
+
+let apps = [];
+let seleccion = null; // { nombre, ruta }
+let estado = null;
+let trabajoActual = null; // { id, slug }
+let carpetaActual = null;
+let enCurso = false;
+
+// ---------- estado ----------
+async function cargarEstado() {
+  estado = await api("/api/estado");
+  const p = $("estado");
+  p.replaceChildren(
+    el("span", { class: "pill" }, estado.plataforma),
+    el("span", { class: "pill ok" }, "Node " + estado.node),
+    estado.opencode.instalado
+      ? el("span", { class: "pill ok" }, "opencode " + (estado.opencode.version || "listo"))
+      : el("span", { class: "pill mal" }, "opencode no encontrado"),
+  );
+  const avisos = $("avisos");
+  avisos.replaceChildren();
+  if (!estado.opencode.instalado) {
+    avisos.append(el("div", { class: "banner error" },
+      "opencode no está instalado (o no está en el PATH). Instálalo desde https://opencode.ai, conecta un modelo dentro de opencode (comando /connect) y reinicia este constructor."));
+  }
+  actualizarBoton();
+}
+
+// ---------- apps ----------
+function pintarApps() {
+  const filtro = $("buscar").value.trim().toLowerCase();
+  const lista = $("lista");
+  const visibles = apps.filter((a) => a.nombre.toLowerCase().includes(filtro));
+  lista.replaceChildren();
+  if (visibles.length === 0) {
+    lista.append(el("div", { class: "vacio" }, apps.length ? "Sin resultados." : "No se encontraron aplicaciones. Escríbela a mano."));
+    return;
+  }
+  for (const a of visibles.slice(0, 400)) {
+    const b = el("button", { class: "app", type: "button", "aria-pressed": String(seleccion?.nombre === a.nombre && !$("manual-nombre").value) }, a.nombre);
+    b.addEventListener("click", () => elegir({ nombre: a.nombre, ruta: a.ruta }));
+    lista.append(b);
+  }
+}
+
+function elegir(app) {
+  seleccion = app;
+  $("manual-nombre").value = "";
+  $("manual-ruta").value = "";
+  $("elegida").textContent = "Elegida: " + app.nombre;
+  if (!$("nombre").dataset.editado) $("nombre").value = slug(app.nombre);
+  pintarApps();
+  actualizarBoton();
+}
+
+function slug(t) {
+  return t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+}
+
+function appActual() {
+  const manual = $("manual-nombre").value.trim();
+  if (manual) return { nombre: manual, ruta: $("manual-ruta").value.trim() };
+  return seleccion;
+}
+
+function actualizarBoton() {
+  const listo = !!appActual() && $("acepto").checked && estado?.opencode?.instalado && !enCurso;
+  $("construir").disabled = !listo;
+  const faltan = [];
+  if (!appActual()) faltan.push("elige una aplicación");
+  if (!$("acepto").checked) faltan.push("acepta el aviso");
+  if (estado && !estado.opencode.instalado) faltan.push("instala opencode");
+  $("ayuda-construir").textContent = listo || enCurso ? "" : "Falta: " + faltan.join(", ");
+}
+
+$("buscar").addEventListener("input", pintarApps);
+$("acepto").addEventListener("change", actualizarBoton);
+$("nombre").addEventListener("input", () => { $("nombre").dataset.editado = "1"; });
+$("manual-btn").addEventListener("click", () => $("manual").classList.toggle("oculto"));
+$("manual-nombre").addEventListener("input", () => {
+  const m = $("manual-nombre").value.trim();
+  $("elegida").textContent = m ? "Elegida: " + m : (seleccion ? "Elegida: " + seleccion.nombre : "");
+  if (m && !$("nombre").dataset.editado) $("nombre").value = slug(m);
+  pintarApps();
+  actualizarBoton();
+});
+
+// ---------- construir ----------
+$("construir").addEventListener("click", async () => {
+  const app = appActual();
+  enCurso = true;
+  actualizarBoton();
+  $("t-resultado").classList.add("oculto");
+  $("activado").classList.add("oculto");
+  try {
+    const r = await api("/api/construir", {
+      method: "POST",
+      body: JSON.stringify({
+        app: app.nombre, rutaApp: app.ruta || "", objetivo: $("objetivo").value,
+        nombre: $("nombre").value, modelo: $("modelo").value,
+      }),
+    });
+    trabajoActual = { id: r.id, slug: r.slug };
+    $("t-progreso").classList.remove("oculto");
+    $("t-progreso").scrollIntoView({ behavior: "smooth" });
+    conectar(r.id);
+  } catch (e) {
+    enCurso = false;
+    actualizarBoton();
+    alert(e.message);
+  }
+});
+
+$("cancelar").addEventListener("click", () => trabajoActual && api(`/api/trabajos/${trabajoActual.id}/cancelar`, { method: "POST" }));
+$("ver-log").addEventListener("click", () => {
+  const oculto = $("log").classList.toggle("oculto");
+  $("ver-log").textContent = oculto ? "Mostrar detalle" : "Ocultar detalle";
+});
+
+let fuente = null;
+let terminado = false;
+
+function reiniciarVista() {
+  $("pasos").replaceChildren();
+  $("log").textContent = "";
+  $("fin").classList.add("oculto");
+}
+
+function conectar(id) {
+  reiniciarVista();
+  terminado = false;
+  if (fuente) fuente.close();
+  fuente = new EventSource(`/api/trabajos/${id}/eventos?t=${TOKEN}`);
+  fuente.onmessage = (m) => manejar(JSON.parse(m.data));
+  fuente.onerror = () => {
+    if (terminado) return;
+    fuente.close();
+    setTimeout(() => !terminado && conectar(id), 1500);
+  };
+}
+
+const ICONOS = { pendiente: "", en_curso: "", ok: "✓", error: "✗", cancelado: "–" };
+
+function manejar(e) {
+  if (e.tipo === "pasos") {
+    $("pasos").replaceChildren();
+    for (const p of e.pasos) {
+      const li = el("li", { id: "paso-" + p.id },
+        el("span", { class: "icono pendiente" }, ""),
+        el("div", {}, el("div", {}, p.titulo), el("div", { class: "detalle" }, "")));
+      $("pasos").append(li);
+    }
+  } else if (e.tipo === "paso") {
+    const li = $("paso-" + e.id);
+    if (!li) return;
+    const ico = li.querySelector(".icono");
+    ico.className = "icono " + e.estado;
+    ico.textContent = ICONOS[e.estado] ?? "";
+    li.querySelector(".detalle").textContent = e.detalle || "";
+  } else if (e.tipo === "log") {
+    const log = $("log");
+    const abajo = log.scrollHeight - log.scrollTop - log.clientHeight < 60;
+    log.append(document.createTextNode(e.texto));
+    if (log.textContent.length > 250000) log.textContent = log.textContent.slice(-150000);
+    if (abajo) log.scrollTop = log.scrollHeight;
+  } else if (e.tipo === "herramientas") {
+    pintarHerramientas(e.lista);
+  } else if (e.tipo === "fin") {
+    terminado = true;
+    enCurso = false;
+    actualizarBoton();
+    if (fuente) fuente.close();
+    const fin = $("fin");
+    fin.className = "banner " + (e.ok ? "ok" : "error");
+    fin.textContent = e.mensaje;
+    fin.classList.remove("oculto");
+    if (e.ok && e.proyecto) {
+      carpetaActual = e.proyecto;
+      $("t-resultado").classList.remove("oculto");
+      $("t-resultado").scrollIntoView({ behavior: "smooth" });
+    }
+    cargarProyectos();
+  }
+}
+
+function pintarHerramientas(lista) {
+  const cont = $("herramientas");
+  cont.replaceChildren();
+  if (!lista.length) cont.append(el("p", { class: "detalle" }, "No se pudo leer la lista de herramientas."));
+  for (const h of lista) {
+    let clase = "sin", texto = "sin declarar";
+    if (h.destructive) { clase = "destructiva"; texto = "puede borrar/sobrescribir"; }
+    else if (h.readOnly) { clase = "lectura"; texto = "solo lectura"; }
+    else if (h.readOnly === false && h.destructive === false) { clase = "modifica"; texto = "modifica datos"; }
+    cont.append(el("div", { class: "herramienta" },
+      el("div", {}, el("code", {}, h.name), el("span", { class: "badge " + clase }, texto)),
+      el("p", {}, h.description)));
+  }
+}
+
+$("activar").addEventListener("click", async () => {
+  if (!carpetaActual) return;
+  $("activar").disabled = true;
+  const out = $("activado");
+  try {
+    const r = await api("/api/activar", { method: "POST", body: JSON.stringify({ slug: carpetaActual.slug }) });
+    out.className = "banner ok";
+    out.textContent = `Activado. Reinicia opencode y pídele, por ejemplo: “usa ${carpetaActual.slug} para …”. ` + r.salida.split("\n")[0];
+  } catch (e) {
+    out.className = "banner error";
+    out.textContent = "No se pudo activar: " + e.message;
+    $("activar").disabled = false;
+  }
+  out.classList.remove("oculto");
+  cargarProyectos();
+});
+$("abrir").addEventListener("click", () => carpetaActual && api("/api/abrir-carpeta", { method: "POST", body: JSON.stringify({ slug: carpetaActual.slug }) }));
+
+// ---------- proyectos ----------
+async function cargarProyectos() {
+  const { proyectos } = await api("/api/proyectos");
+  const cont = $("proyectos");
+  if (!proyectos.length) return;
+  cont.replaceChildren();
+  for (const p of proyectos) {
+    cont.append(el("div", { class: "proyecto" },
+      el("div", {}, el("b", {}, p.app), el("span", { class: "detalle" }, `  ·  ${p.slug}  ·  ${p.activado ? "activado en opencode" : "sin activar"}`)),
+      el("div", { class: "fila" },
+        el("button", { class: "sec", onclick: () => api("/api/abrir-carpeta", { method: "POST", body: JSON.stringify({ slug: p.slug }) }) }, "Abrir carpeta"),
+        p.activado ? "" : el("button", { class: "sec", onclick: async (ev) => {
+          ev.target.disabled = true;
+          try { await api("/api/activar", { method: "POST", body: JSON.stringify({ slug: p.slug }) }); } catch (e) { alert(e.message); }
+          cargarProyectos();
+        } }, "Activar en opencode"))));
+  }
+}
+
+$("salir").addEventListener("click", async () => {
+  if (!confirm("¿Cerrar el constructor? Si hay una construcción en curso se detendrá.")) return;
+  try { await api("/api/salir", { method: "POST" }); } catch {}
+  document.body.innerHTML = "<main><p>Constructor cerrado. Ya puedes cerrar esta pestaña.</p></main>";
+});
+
+// ---------- arranque ----------
+(async () => {
+  try {
+    await cargarEstado();
+    api("/api/apps").then((d) => { apps = d.apps; pintarApps(); });
+    cargarProyectos();
+  } catch (e) {
+    document.body.innerHTML = "<main><p>No se pudo conectar con el constructor: " + e.message + "</p></main>";
+  }
+})();
+</script>
+</body>
+</html>

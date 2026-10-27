@@ -1,0 +1,8 @@
+# Los .bat necesitan saltos de linea de Windows (CRLF); los .command y .sh de Unix (LF).
+*.bat      text eol=crlf
+*.cmd      text eol=crlf
+*.ps1      text eol=crlf
+*.command  text eol=lf
+*.sh       text eol=lf
+*.mjs      text eol=lf
+*.ts       text eol=lf

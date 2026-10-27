@@ -1,0 +1,20 @@
+node_modules/
+dist/
+dist-instaladores/
+instalador/payload.json
+.env
+*.bak
+.DS_Store
+Thumbs.db
+
+# Lanzadores antiguos (reemplazados por Iniciar.bat / Iniciar.command)
+/instalar.bat
+/instalar.command
+/iniciar-opencode.bat
+/iniciar-opencode.command
+/iniciar-antigravity.bat
+/iniciar-antigravity.command
+/constructor.bat
+/constructor.command
+/_respaldo_antes_de_cambios/
+diagnostico.txt

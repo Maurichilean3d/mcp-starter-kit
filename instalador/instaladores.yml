@@ -1,0 +1,20 @@
+name: Construir instaladores (setup.exe y .dmg)
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+jobs:
+  construir:
+    runs-on: macos-latest   # un Mac puede compilar para Windows y Mac, y crear el .dmg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: oven-sh/setup-bun@v2
+      - run: node instalador/construir.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: instaladores
+          path: |
+            dist-instaladores/setup.exe
+            dist-instaladores/MCP-Starter-Kit.dmg
