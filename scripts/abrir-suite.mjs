@@ -42,7 +42,7 @@ for (const m of miembros) {
   const { nombreMcp } = await prepararApp(m.carpeta);
   try {
     const cfg = JSON.parse(readFileSync(path.join(m.carpeta, "opencode.json"), "utf8"));
-    for (const [k, v] of Object.entries(cfg.mcp ?? {})) mcp[k] = v;
+    for (const [k, v] of Object.entries(cfg.mcp ?? {})) if (k !== "rea") mcp[k] = v; // REA solo se usa al construir
   } catch { /* sin opencode.json propio */ }
   if (nombreMcp) console.log(`(${m.slug}: puente registrado como "${nombreMcp}")`);
   mcp[m.slug] = { type: "local", command: ["node", path.join(m.carpeta, "dist", "index.js").replaceAll("\\", "/")], enabled: true, timeout: 30000 };

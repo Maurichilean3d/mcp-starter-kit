@@ -7,6 +7,7 @@ import path from "node:path";
 import { ARCHIVOS, RAIZ_KIT, carpetaDeProyecto, crearLanzadores } from "./proyecto.mjs";
 import { construirPromptMejora, reglasLegalesExtensiones } from "./prompts-pro.mjs";
 import { instalarModuloVisual, tieneVisual } from "./visual.mjs";
+import { agregarRea } from "./rea.mjs";
 
 const existe = (p) => access(p).then(() => true, () => false);
 const A_RESPALDAR = ["VISUAL.md", "src", "scripts", "package.json", "package-lock.json", "README.md", "AGENTS.md", "opencode.json", "RESEARCH.md", "PLUGINS.md", "CHANGELOG.md", ".mcp-constructor.json"];
@@ -23,7 +24,7 @@ export async function leerProyecto(slug) {
   } catch {
     throw new Error(`No encuentro el MCP "${slug}".`);
   }
-  if (datos.tipo === "suite") throw new Error("Una suite no se mejora aqui: sus MCP se mejoran uno por uno.");
+  if (datos.tipo && datos.tipo !== "mcp") throw new Error("Solo se pueden mejorar MCP (no suites ni proyectos de porte).");
   if (!(await existe(path.join(carpeta, "src")))) throw new Error(`El MCP "${slug}" no tiene carpeta src; no parece un proyecto del constructor.`);
   return { carpeta, datos };
 }
@@ -57,14 +58,15 @@ export async function actualizarArranque(carpeta, { app, slug }) {
   return crearLanzadores(carpeta, { app, slug });
 }
 
-export async function prepararMejora({ slug, pedido, investigar, visual = false, plugins = false }) {
+export async function prepararMejora({ slug, pedido, investigar, visual = false, plugins = false, rea = false }) {
   const { carpeta, datos } = await leerProyecto(slug);
   const app = datos.app ?? slug;
   const respaldo = await respaldar(carpeta);
   const lanzador = await actualizarArranque(carpeta, { app, slug });
   if (visual) await instalarModuloVisual(carpeta, { app });
+  if (rea) await agregarRea(carpeta);
   if (plugins && !(await readFile(path.join(carpeta, "AGENTS.md"), "utf8").catch(() => "")).includes("Reglas de legalidad para plugins")) await appendFile(path.join(carpeta, "AGENTS.md"), "\n" + reglasLegalesExtensiones(), "utf8");
   const conVisual = visual || (await tieneVisual(carpeta));
-  await writeFile(path.join(carpeta, "MEJORA.md"), construirPromptMejora({ app, slug, pedido, investigar, visual: conVisual, plugins }), "utf8");
+  await writeFile(path.join(carpeta, "MEJORA.md"), construirPromptMejora({ app, slug, pedido, investigar, visual: conVisual, plugins, rea }), "utf8");
   return { carpeta, app, respaldo, lanzador };
 }

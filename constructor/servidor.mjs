@@ -21,6 +21,8 @@ import { fileURLToPath } from "node:url";
 import { listarApps } from "./apps.mjs";
 import { carpetaSalida, nombrePlataforma, slugify, proyectoExiste } from "./proyecto.mjs";
 import { activarMcp, detectarOpencode, ejecutarTrabajo, ejecutarMejora, ejecutarSuite, marcarActivado, Trabajo } from "./trabajo.mjs";
+import { ejecutarPorte, porteExiste, validarAutorizacion } from "./portes.mjs";
+import { NOMBRES_DESTINO } from "./prompts-rea.mjs";
 import { ampliarPath } from "../scripts/asegurar-clis.mjs";
 
 // Un cmd/Terminal nuevo a veces no ve donde se instala opencode (p. ej. %APPDATA%\npm): lo anadimos al PATH.
@@ -110,7 +112,7 @@ async function proyectosCreados() {
   for (const n of nombres) {
     try {
       const datos = JSON.parse(await readFile(path.join(base, n, ".mcp-constructor.json"), "utf8"));
-      lista.push({ slug: n, app: datos.app, creado: datos.creado, activado: !!datos.activado, carpeta: path.join(base, n), tipo: datos.tipo === "suite" ? "suite" : "mcp", miembros: datos.miembros?.map((m) => m.slug) });
+      lista.push({ slug: n, app: datos.app, creado: datos.creado, activado: !!datos.activado, carpeta: path.join(base, n), tipo: ["suite", "porte"].includes(datos.tipo) ? datos.tipo : "mcp", miembros: datos.miembros?.map((m) => m.slug), destino: datos.destino });
     } catch {
       /* no es un proyecto del constructor */
     }
@@ -137,7 +139,7 @@ function validarEntrada(cuerpo) {
     return { error: "El modelo debe tener el formato proveedor/modelo (por ejemplo anthropic/claude-sonnet-4)." };
   }
 
-  return { app, rutaApp, objetivo, slug, modelo, sobrescribir: cuerpo.sobrescribir === true, investigar: cuerpo.investigar === true, visual: cuerpo.visual === true, plugins: cuerpo.plugins === true };
+  return { app, rutaApp, objetivo, slug, modelo, sobrescribir: cuerpo.sobrescribir === true, investigar: cuerpo.investigar === true, visual: cuerpo.visual === true, plugins: cuerpo.plugins === true, rea: cuerpo.rea === true };
 }
 
 function validarModelo(valor) {
@@ -204,7 +206,7 @@ async function manejarApi(req, res, url) {
     const m = validarModelo(c.modelo);
     if (m.error) return responderJson(res, 400, { error: m.error });
     if (!(await proyectoExiste(slug))) return responderJson(res, 404, { error: "Proyecto no encontrado." });
-    return iniciarTrabajo(res, ejecutarMejora, { slug, pedido, modelo: m.modelo, investigar: c.investigar === true, visual: c.visual === true, plugins: c.plugins === true }, { slug });
+    return iniciarTrabajo(res, ejecutarMejora, { slug, pedido, modelo: m.modelo, investigar: c.investigar === true, visual: c.visual === true, plugins: c.plugins === true, rea: c.rea === true }, { slug });
   }
 
   if (req.method === "POST" && ruta === "/api/suite") {
@@ -221,6 +223,33 @@ async function manejarApi(req, res, url) {
     if (m.error) return responderJson(res, 400, { error: m.error });
     if (c.sobrescribir !== true && (await proyectoExiste(slug))) return responderJson(res, 409, { existe: true, slug, error: `Ya existe una suite llamada "${slug}".` });
     return iniciarTrabajo(res, ejecutarSuite, { nombre, slug, miembros, objetivo, modelo: m.modelo, sobrescribir: c.sobrescribir === true }, { slug });
+  }
+
+  if (req.method === "POST" && ruta === "/api/porte") {
+    if (trabajoActivo && !trabajoActivo.terminado) return responderJson(res, 409, { error: "Ya hay un trabajo en curso." });
+    const c = await leerJson(req);
+    const nombre = String(c.nombre ?? "").trim();
+    if (!nombre || nombre.length > 60 || !sinControl(nombre)) return responderJson(res, 400, { error: "Ponle un nombre al proyecto (maximo 60 caracteres)." });
+    const slug = slugify(nombre).slice(0, 34).replace(/-+$/, "") || "app";
+    const rutaObjetivo = String(c.rutaObjetivo ?? "").trim();
+    if (!rutaObjetivo || rutaObjetivo.length > 500 || !sinControl(rutaObjetivo) || !path.isAbsolute(rutaObjetivo)) {
+      return responderJson(res, 400, { error: "Indica la ruta COMPLETA (absoluta) de la carpeta, .asar o archivo que quieres estudiar." });
+    }
+    if (!(await existe(rutaObjetivo))) return responderJson(res, 400, { error: "No encuentro esa ruta en este equipo." });
+    const objetivo = c.objetivo ? String(c.objetivo).trim() : "";
+    if (objetivo.length > 2000 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(objetivo)) return responderJson(res, 400, { error: "La descripcion es demasiado larga (maximo 2000 caracteres)." });
+    const destino = String(c.destino ?? "");
+    if (!Object.hasOwn(NOMBRES_DESTINO, destino)) return responderJson(res, 400, { error: "Elige el destino de la implementacion." });
+    let autorizacion;
+    try {
+      autorizacion = validarAutorizacion(c.autorizacion);
+    } catch (e) {
+      return responderJson(res, 400, { error: e.message });
+    }
+    const m = validarModelo(c.modelo);
+    if (m.error) return responderJson(res, 400, { error: m.error });
+    if (c.sobrescribir !== true && (await porteExiste(slug))) return responderJson(res, 409, { existe: true, slug, error: `Ya existe un proyecto de porte llamado "${slug}".` });
+    return iniciarTrabajo(res, ejecutarPorte, { slug, nombre, rutaObjetivo, objetivo, destino, autorizacion, modelo: m.modelo, sobrescribir: c.sobrescribir === true }, { slug: `porte-${slug}` });
   }
 
   const m = ruta.match(/^\/api\/trabajos\/([a-f0-9]{12})\/(eventos|cancelar)$/);

@@ -60,3 +60,27 @@ Casilla **"Analizar plugins y complementos de la app"** (al crear, o en **Mejora
 **Reglas de legalidad** (también se añaden al `AGENTS.md` del MCP): sala limpia (solo documentación pública, SDK oficial y código abierto con licencia compatible, con atribución); prohibido descompilar, desofuscar, parchear, saltarse licencias/DRM o usar claves/cracks; sin copiar código, interfaz, textos ni recursos ajenos; sin usar marcas de terceros como nombre propio; revisar los términos (EULA/SDK) y, si no está claro, marcar "REQUIERE REVISIÓN" y no implementar; solo se inspecciona la interfaz pública de lo instalado.
 
 Límite honesto: es la IA quien clasifica y decide, así que **revisa `PLUGINS.md` y las licencias antes de publicar o vender** lo que genere. Esto no es asesoría legal.
+
+
+---
+
+# Rama `pro-rea`: estudiar y portar apps con REA (ingeniería inversa legal)
+
+Integra [REA](https://github.com/morluto/rea) (*Reverse Engineer Anything*, licencia MIT, paquete npm `rea-agents`, versión fijada **6.8.0**) como servidor MCP de **solo lectura** para opencode. Dos usos:
+
+**1. Casilla "Estudiar la app instalada con REA"** (al crear un MCP o en **Mejorar…**). Durante la creación opencode puede analizar *tu copia instalada* para entender sus interfaces (formatos de archivo, scripting, plugins, comunicación local) y escribir mejores herramientas. REA se agrega al `opencode.json` del proyecto solo durante el trabajo y **se quita al terminar**; no queda en tu MCP final.
+
+**2. Tarjeta "Estudiar y portar una app"** (sala limpia en dos fases, carpeta `porte-<nombre>`):
+1. **Análisis** (carpeta `analisis/`, con REA): un agente estudia el objetivo y escribe `ESPECIFICACION.md` describiendo *qué hace* y sus interfaces, con prosa propia.
+2. **Revisión mecánica**: se rechaza una especificación demasiado corta, con bloques largos de código copiado o con claves/secretos. Se da una oportunidad de reescribirla; si sigue fallando **no se pasa a la fase 3**.
+3. **Implementación** (carpeta `implementacion/`, otro opencode **sin REA y sin acceso al análisis**, `external_directory: deny`): solo ve la especificación y construye una versión **propia** para Windows, macOS, Linux o multiplataforma, con `README.md` para ejecutarla.
+
+Resultado: `INFORME-LEGAL.md` (qué se hizo y con qué base declarada) y `AUTORIZACION.md`.
+
+**Autorización:** debes elegir una base (es tu app / código abierto / permiso del titular / interoperabilidad permitida por ley), dar el detalle (licencia, quién autorizó) y aceptar una declaración. **No se puede verificar**: es tu responsabilidad y esto no es asesoría legal.
+
+**Fuera de alcance (igual que el aviso de REA):** saltarse licencias o DRM, anti-trampas, evadir autenticación, servicios en línea de terceros, copiar código o recursos propietarios.
+
+**Requisitos:** internet la primera vez (`npx` descarga REA). Para binarios nativos REA necesita Ghidra, Hopper, IDA o Kuna instalados por ti; para apps Electron/JS (carpeta o `.asar`) no necesita nada extra.
+
+**Estado de las pruebas:** flujo completo (autorización, revisión, separación de carpetas, agregar/quitar REA) probado con un opencode simulado. **No se ha ejecutado con REA ni un modelo reales**, ni en Windows/macOS.

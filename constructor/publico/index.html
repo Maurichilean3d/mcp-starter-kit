@@ -114,6 +114,10 @@
       <span><b>Investigar cómo lo hacen las herramientas líderes</b> (recomendado). Antes de escribir el MCP, opencode busca en el registro oficial de MCP, GitHub, Hugging Face y la documentación de la app qué capacidades ofrecen Claude, ChatGPT, Gemini y otros agentes, para que el MCP no se quede en lo básico. Tarda unos minutos más; desmárcalo si quieres algo rápido.</span>
     </label>
     <label class="consent">
+      <input type="checkbox" id="rea">
+      <span><b>Estudiar la app instalada con REA</b> (opcional, ingeniería inversa legal). opencode usará el servidor MCP <a href="https://github.com/morluto/rea" target="_blank" rel="noopener">REA</a> (licencia MIT, se descarga con npx) para entender las <b>interfaces</b> de tu copia instalada: formatos de archivo, scripting, plugins, comunicación local. Solo lectura. Declaro que tengo derecho a analizar mi copia para interoperar; no se analizan licencias, DRM ni anti-trampas.</span>
+    </label>
+    <label class="consent">
       <input type="checkbox" id="plugins">
       <span><b>Analizar plugins y complementos de la app</b> (opcional). Busca qué complementos potencian sus herramientas (incluidos, gratuitos o de pago), los integra si ya los tienes y, cuando la capacidad se pueda lograr con la API oficial de la app, propone <b>desarrollar una alternativa propia</b>. Solo de forma legal: sin copiar código, sin descompilar ni saltarse licencias; los de pago se recomiendan, no se piratean.</span>
     </label>
@@ -173,6 +177,7 @@
     <label class="campo" for="mej-pedido">¿Qué quieres mejorar o añadir? (opcional)</label>
     <textarea id="mej-pedido" maxlength="2000" placeholder="Ej: Que pueda crear presentaciones con diseño profesional: temas, gráficos, imágenes y exportar una vista previa para revisar el resultado."></textarea>
     <label class="consent"><input type="checkbox" id="mej-investigar" checked><span>Investigar primero cómo lo hacen las herramientas líderes (registro MCP, GitHub, Hugging Face, documentación).</span></label>
+    <label class="consent"><input type="checkbox" id="mej-rea"><span>Estudiar la app instalada con <b>REA</b> (solo lectura, para entender sus interfaces; declaro que tengo derecho a analizar mi copia para interoperar).</span></label>
     <label class="consent"><input type="checkbox" id="mej-plugins"><span>Analizar <b>plugins y complementos</b> de la app y proponer/crear capacidades propias equivalentes (solo de forma legal).</span></label>
     <label class="consent"><input type="checkbox" id="mej-visual"><span>Añadir <b>control visual</b> (ver la ventana y usar mouse/teclado dentro de la app, con freno de emergencia).</span></label>
     <label class="consent"><input type="checkbox" id="mej-acepto"><span>Entiendo que opencode <b>ejecutará comandos y escribirá archivos</b> en la carpeta de este MCP con aprobación automática.</span></label>
@@ -194,6 +199,39 @@
     <div class="fila">
       <button class="principal" id="suite-ir" disabled>Crear suite</button>
       <span class="detalle" id="suite-ayuda"></span>
+    </div>
+  </section>
+
+  <section class="tarjeta" id="t-porte">
+    <h2>Estudiar y portar una app (con REA, en dos fases)</h2>
+    <p class="detalle" style="margin-top:0">Para <b>apps tuyas, de código abierto, con permiso del titular o donde la ley te lo permita</b>. Proceso de sala limpia: un agente estudia el objetivo (solo lectura, con <a href="https://github.com/morluto/rea" target="_blank" rel="noopener">REA</a>) y escribe una <b>especificación</b>; se revisa que no tenga código copiado ni secretos; y <b>otro agente, sin acceso al análisis</b>, implementa una versión propia para el sistema que elijas. No se analizan ni replican licencias, DRM, anti-trampas ni servicios en línea.</p>
+    <label class="campo" for="porte-nombre">Nombre del proyecto</label>
+    <input type="text" id="porte-nombre" maxlength="60" placeholder="Ej: Mi visor de notas para Linux">
+    <label class="campo" for="porte-ruta">Ruta completa de lo que quieres estudiar (carpeta, .asar, .exe/.app...)</label>
+    <input type="text" id="porte-ruta" maxlength="500" placeholder="Ej: C:\Users\yo\apps\miapp   o   /Applications/MiApp.app">
+    <label class="campo" for="porte-objetivo">¿Qué quieres entender o replicar? (opcional)</label>
+    <textarea id="porte-objetivo" maxlength="2000" placeholder="Ej: Cómo funciona la búsqueda y el formato de sus archivos, para tener una versión propia en Linux."></textarea>
+    <label class="campo" for="porte-destino">Sistema de destino</label>
+    <select id="porte-destino">
+      <option value="multiplataforma">Windows + macOS + Linux (multiplataforma)</option>
+      <option value="windows">Windows</option>
+      <option value="macos">macOS</option>
+      <option value="linux">Linux</option>
+      <option value="mi-proyecto">Una función dentro de mi propio proyecto</option>
+    </select>
+    <label class="campo" for="porte-base">¿Con qué base tienes derecho a analizarlo?</label>
+    <select id="porte-base">
+      <option value="">— elige una —</option>
+      <option value="propia">Es mi propia aplicación / tengo su código fuente</option>
+      <option value="abierta">Es software de código abierto</option>
+      <option value="permiso">Tengo permiso del titular de los derechos</option>
+      <option value="interoperabilidad">Interoperabilidad / preservación / auditoría permitida por ley en mi país</option>
+    </select>
+    <input type="text" id="porte-detalle" maxlength="300" placeholder="Licencia, quién dio el permiso o base legal (obligatorio salvo 'propia')" style="margin-top:8px">
+    <label class="consent"><input type="checkbox" id="porte-acepto"><span>Declaro que tengo derecho a analizar este objetivo con este fin y cumpliré las leyes, licencias y términos aplicables. Entiendo que esta declaración <b>no se verifica</b>, que no es asesoría legal y que opencode <b>ejecutará comandos y escribirá archivos</b> en la carpeta del proyecto. No usaré esto para saltarme licencias, DRM ni anti-trampas, ni para copiar software propietario.</span></label>
+    <div class="fila">
+      <button class="principal" id="porte-ir" disabled>Estudiar y portar</button>
+      <span class="detalle" id="porte-ayuda"></span>
     </div>
   </section>
 
@@ -318,7 +356,7 @@ $("construir").addEventListener("click", async () => {
   try {
     const cuerpo = {
       app: app.nombre, rutaApp: app.ruta || "", objetivo: $("objetivo").value,
-      nombre: $("nombre").value, modelo: $("modelo").value, investigar: $("investigar").checked, visual: $("visual").checked, plugins: $("plugins").checked,
+      nombre: $("nombre").value, modelo: $("modelo").value, investigar: $("investigar").checked, visual: $("visual").checked, plugins: $("plugins").checked, rea: $("rea").checked,
     };
     let r;
     try {
@@ -401,6 +439,7 @@ function manejar(e) {
     actualizarBoton();
     actualizarMejBoton();
     actualizarSuiteBoton();
+    actualizarPorteBoton();
     if (fuente) fuente.close();
     const fin = $("fin");
     fin.className = "banner " + (e.ok ? "ok" : "error");
@@ -455,10 +494,10 @@ async function cargarProyectos() {
   if (!proyectos.length) return;
   cont.replaceChildren();
   for (const p of proyectos) {
-    const esSuite = p.tipo === "suite";
+    const esSuite = p.tipo === "suite" || p.tipo === "porte";
     cont.append(el("div", { class: "proyecto" },
       el("div", {}, el("b", {}, p.app), el("span", { class: "detalle" },
-        esSuite ? `  ·  suite de: ${(p.miembros || []).join(", ")}` : `  ·  ${p.slug}  ·  ${p.activado ? "activado en opencode" : "sin activar"}`)),
+        p.tipo === "porte" ? `  ·  porte a ${p.destino || "?"}` : esSuite ? `  ·  suite de: ${(p.miembros || []).join(", ")}` : `  ·  ${p.slug}  ·  ${p.activado ? "activado en opencode" : "sin activar"}`)),
       el("div", { class: "fila" },
         el("button", { class: "sec", onclick: () => api("/api/abrir-carpeta", { method: "POST", body: JSON.stringify({ slug: p.slug }) }) }, "Abrir carpeta"),
         esSuite ? "" : el("button", { class: "sec", onclick: () => abrirMejora(p) }, "Mejorar…"),
@@ -468,7 +507,7 @@ async function cargarProyectos() {
           cargarProyectos();
         } }, "Activar en opencode"))));
   }
-  pintarSuite(proyectos.filter((p) => p.tipo !== "suite"));
+  pintarSuite(proyectos.filter((p) => p.tipo === "mcp" || !p.tipo));
 }
 
 // ---------- mejorar / suites ----------
@@ -479,6 +518,7 @@ function mostrarProgreso(r, slug) {
   enCurso = true;
   actualizarBoton();
   actualizarSuiteBoton();
+  actualizarPorteBoton();
   $("t-resultado").classList.add("oculto");
   $("activado").classList.add("oculto");
   $("t-progreso").classList.remove("oculto");
@@ -512,7 +552,7 @@ $("mej-ir").addEventListener("click", async () => {
   $("mej-ir").disabled = true;
   try {
     const r = await api("/api/mejorar", { method: "POST", body: JSON.stringify({
-      slug: mejorando.slug, pedido: $("mej-pedido").value, investigar: $("mej-investigar").checked, visual: $("mej-visual").checked, plugins: $("mej-plugins").checked, modelo: $("modelo").value,
+      slug: mejorando.slug, pedido: $("mej-pedido").value, investigar: $("mej-investigar").checked, visual: $("mej-visual").checked, plugins: $("mej-plugins").checked, rea: $("mej-rea").checked, modelo: $("modelo").value,
     }) });
     $("t-mejorar").classList.add("oculto");
     mostrarProgreso(r, mejorando.slug);
@@ -553,6 +593,34 @@ $("salir").addEventListener("click", async () => {
   if (!confirm("¿Cerrar el constructor? Si hay una construcción en curso se detendrá.")) return;
   try { await api("/api/salir", { method: "POST" }); } catch {}
   document.body.innerHTML = "<main><p>Constructor cerrado. Ya puedes cerrar esta pestaña.</p></main>";
+});
+
+
+// ---------- estudiar y portar ----------
+function actualizarPorteBoton() {
+  const base = $("porte-base").value;
+  const faltan = [];
+  if (!$("porte-nombre").value.trim()) faltan.push("un nombre");
+  if (!$("porte-ruta").value.trim()) faltan.push("la ruta");
+  if (!base) faltan.push("la base legal");
+  else if (base !== "propia" && $("porte-detalle").value.trim().length < 5) faltan.push("el detalle de la base legal");
+  if (!$("porte-acepto").checked) faltan.push("aceptar la declaración");
+  const ok = !faltan.length && estado?.opencode?.instalado && !enCurso;
+  $("porte-ir").disabled = !ok;
+  $("porte-ayuda").textContent = ok || enCurso ? "" : "Falta: " + faltan.join(", ");
+}
+for (const id of ["porte-nombre", "porte-ruta", "porte-detalle"]) $(id).addEventListener("input", actualizarPorteBoton);
+for (const id of ["porte-base", "porte-acepto"]) $(id).addEventListener("change", actualizarPorteBoton);
+$("porte-ir").addEventListener("click", async () => {
+  $("porte-ir").disabled = true;
+  try {
+    const r = await lanzarTrabajo("/api/porte", {
+      nombre: $("porte-nombre").value, rutaObjetivo: $("porte-ruta").value, objetivo: $("porte-objetivo").value,
+      destino: $("porte-destino").value, modelo: $("modelo").value,
+      autorizacion: { tipo: $("porte-base").value, detalle: $("porte-detalle").value, acepto: $("porte-acepto").checked },
+    }, "Ya existe un proyecto de porte con ese nombre.\n\n¿Quieres SOBRESCRIBIRLO? Se borra esa carpeta y se rehace.");
+    mostrarProgreso(r, r.slug);
+  } catch (e) { alert(e.message); actualizarPorteBoton(); }
 });
 
 // ---------- arranque ----------

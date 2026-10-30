@@ -42,7 +42,7 @@ export async function leerMiembro(slug) {
   } catch {
     throw new Error(`No encuentro el MCP "${slug}" en ${carpetaSalida()}.`);
   }
-  if (datos.tipo === "suite") throw new Error(`"${slug}" es una suite; una suite no puede contener otra suite.`);
+  if (datos.tipo && datos.tipo !== "mcp") throw new Error(`"${slug}" no es un MCP (es ${datos.tipo}); una suite solo combina MCP.`);
   return { slug, app: datos.app ?? slug, rutaApp: datos.rutaApp ?? "", carpeta };
 }
 

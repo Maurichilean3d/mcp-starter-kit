@@ -11,6 +11,7 @@ import path from "node:path";
 import { crearProyecto } from "./proyecto.mjs";
 import { prepararMejora, restaurar } from "./mejora.mjs";
 import { crearSuite } from "./suite.mjs";
+import { quitarRea } from "./rea.mjs";
 import { MENSAJE_FLUJOS, MENSAJE_MEJORAR } from "./prompts-pro.mjs";
 
 export const PASOS = [
@@ -270,14 +271,14 @@ function fallar(trabajo, pasoId, mensaje) {
   trabajo.emitir({ tipo: "fin", ok: false, mensaje });
 }
 
-export async function ejecutarTrabajo(trabajo, { app, rutaApp, objetivo, slug, modelo, sobrescribir, investigar, visual, plugins }) {
+export async function ejecutarTrabajo(trabajo, { app, rutaApp, objetivo, slug, modelo, sobrescribir, investigar, visual, plugins, rea }) {
   trabajo.emitir({ tipo: "pasos", pasos: PASOS });
   let carpeta;
   try {
     // 1. preparar
     trabajo.paso("preparar", "en_curso");
     let lanzador;
-    ({ carpeta, lanzador } = await crearProyecto({ app, rutaApp, objetivo, slug, sobrescribir, investigar, visual, plugins }));
+    ({ carpeta, lanzador } = await crearProyecto({ app, rutaApp, objetivo, slug, sobrescribir, investigar, visual, plugins, rea }));
     trabajo.log(`Proyecto creado en: ${carpeta}\n`);
     trabajo.paso("preparar", "ok", carpeta);
 
@@ -320,6 +321,7 @@ export async function ejecutarTrabajo(trabajo, { app, rutaApp, objetivo, slug, m
     trabajo.paso("verificar", "ok");
 
     // 5. resumen
+    await quitarRea(carpeta);
     trabajo.paso("resumen", "en_curso");
     const lista = await listarHerramientas(carpeta);
     trabajo.emitir({ tipo: "herramientas", lista });
@@ -369,12 +371,12 @@ function errorFinal(e, trabajo) {
 }
 
 /** MEJORAR un MCP existente. Si no queda funcionando, se restaura el respaldo. */
-export async function ejecutarMejora(trabajo, { slug, pedido, modelo, investigar, visual, plugins }) {
+export async function ejecutarMejora(trabajo, { slug, pedido, modelo, investigar, visual, plugins, rea }) {
   trabajo.emitir({ tipo: "pasos", pasos: PASOS_MEJORA });
   let ctx;
   try {
     trabajo.paso("preparar", "en_curso");
-    ctx = await prepararMejora({ slug, pedido, investigar, visual, plugins });
+    ctx = await prepararMejora({ slug, pedido, investigar, visual, plugins, rea });
     trabajo.log(`Respaldo guardado en: ${ctx.respaldo}\n`);
     const inst = await trabajo.ejecutar("npm", ["install", "--no-audit", "--no-fund"], { cwd: ctx.carpeta, limiteMs: 10 * 60 * 1000 });
     if (trabajo.cancelado) throw new Cancelado();
@@ -399,6 +401,7 @@ export async function ejecutarMejora(trabajo, { slug, pedido, modelo, investigar
     }
     trabajo.paso("verificar", "ok");
 
+    await quitarRea(ctx.carpeta);
     trabajo.paso("resumen", "en_curso");
     const lista = await listarHerramientas(ctx.carpeta);
     trabajo.emitir({ tipo: "herramientas", lista });

@@ -1,3 +1,4 @@
+import { bloqueRea } from "./prompts-rea.mjs";
 /**
  * Prompts de la edicion "pro": investigacion de referentes, mejora de un MCP existente y flujos de una suite.
  */
@@ -79,7 +80,7 @@ ${reglasLegalesExtensiones()}
 `;
 }
 
-export function construirPromptMejora({ app, slug, pedido, investigar, visual = false, plugins = false }) {
+export function construirPromptMejora({ app, slug, pedido, investigar, visual = false, plugins = false, rea = false }) {
   const meta = (pedido ?? "").trim().slice(0, 2000);
   return `# Mision: MEJORAR un MCP existente
 
@@ -95,7 +96,7 @@ Este proyecto ya contiene un servidor MCP (\`${slug}\`) para la aplicacion **${a
 4. Se hizo una copia de seguridad en \`.respaldo/\` (no la modifiques).
 5. Si necesitas probar la app real y no puedes, dilo en el README en vez de inventar resultados.
 
-${plugins ? bloquePlugins({ app }) : ""}${visual ? bloqueVisual({ app }) : ""}${investigar ? bloqueInvestigacion({ app, visual }).replace("OBLIGATORIA en este proyecto, antes de la Fase 1", "antes de decidir que anadir") : ""}# Pasos
+${rea ? bloqueRea({ app }) : ""}${plugins ? bloquePlugins({ app }) : ""}${visual ? bloqueVisual({ app }) : ""}${investigar ? bloqueInvestigacion({ app, visual }).replace("OBLIGATORIA en este proyecto, antes de la Fase 1", "antes de decidir que anadir") : ""}# Pasos
 
 ${investigar ? "0. Haz la investigacion de referentes de arriba y escribe/actualiza \`RESEARCH.md\`.\n" : ""}1. Haz un inventario: que herramientas existen, que hacen, que les falta (entradas poco validadas, falta de herramientas de lectura/inspeccion, nada para verificar el resultado visualmente, operaciones solo de bajo nivel...).
 2. Propon (en tu cabeza, y resumido en \`CHANGELOG.md\`) la lista de cambios, priorizada.

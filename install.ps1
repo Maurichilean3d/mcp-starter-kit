@@ -2,10 +2,10 @@
 # Descarga el kit sin la marca "descargado de internet" de los navegadores, asi que Windows no muestra
 # "Windows protegio su PC". Luego abre el instalador/menu.
 #
-#   irm https://raw.githubusercontent.com/Maurichilean3d/mcp-starter-kit/pro-plugins/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/Maurichilean3d/mcp-starter-kit/pro-rea/install.ps1 | iex
 $ErrorActionPreference = 'Stop'
 $repo = 'Maurichilean3d/mcp-starter-kit'
-$dest = Join-Path $env:USERPROFILE 'mcp-starter-kit-plugins'
+$dest = Join-Path $env:USERPROFILE 'mcp-starter-kit-rea'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $ProgressPreference = 'SilentlyContinue'
 
@@ -16,7 +16,7 @@ $tmp = Join-Path $env:TEMP ('mcpkit_' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tmp | Out-Null
 try {
   Write-Host 'Descargando el kit...'
-  Invoke-WebRequest -UseBasicParsing "https://github.com/$repo/archive/refs/heads/pro-plugins.zip" -OutFile (Join-Path $tmp 'kit.zip')
+  Invoke-WebRequest -UseBasicParsing "https://github.com/$repo/archive/refs/heads/pro-rea.zip" -OutFile (Join-Path $tmp 'kit.zip')
   Expand-Archive -Path (Join-Path $tmp 'kit.zip') -DestinationPath $tmp -Force
   $src = Get-ChildItem -Path $tmp -Directory | Select-Object -First 1
   New-Item -ItemType Directory -Force -Path $dest | Out-Null
