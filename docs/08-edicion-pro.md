@@ -45,3 +45,18 @@ Añade una cuarta capacidad: el MCP puede **ver la ventana de la app y usar mous
 **Requisitos:** Windows: nada extra. macOS: permisos *Accesibilidad* y *Grabación de pantalla* a la app desde la que ejecutas opencode. Linux: X11 con `xdotool` y `scrot` o ImageMagick.
 
 **Estado de las pruebas:** Linux/X11 probado de verdad (captura, clic, escritura, comparación sobre una ventana real); el resto con un backend simulado (`VISUAL_BACKEND=simulado`). Windows y macOS **sin probar** en equipos reales.
+
+---
+
+# Rama `pro-plugins`: ecosistema de plugins, de forma legal
+
+Casilla **"Analizar plugins y complementos de la app"** (al crear, o en **Mejorar…**). opencode investiga qué complementos potencian las herramientas estándar de la app y escribe `PLUGINS.md` clasificándolos:
+
+- **A. Incluido o gratuito** → se integra (herramientas que usan su API/scripting + `plugins_estado` que detecta cuáles hay instalados).
+- **B. De pago** → **no se consigue ni se emula pirateándolo**: se recomienda como opción (qué desbloquea, licencia) y el MCP lo aprovecha automáticamente si la persona ya lo tiene.
+- **C. Capacidad desarrollable de forma propia** → implementación **original** de la *funcionalidad* (no del producto) con el SDK/API oficial de la app, hasta 3 por pasada; el resto queda como propuesta.
+- **D. No procede** → lo que los términos de la app o la ley no permiten.
+
+**Reglas de legalidad** (también se añaden al `AGENTS.md` del MCP): sala limpia (solo documentación pública, SDK oficial y código abierto con licencia compatible, con atribución); prohibido descompilar, desofuscar, parchear, saltarse licencias/DRM o usar claves/cracks; sin copiar código, interfaz, textos ni recursos ajenos; sin usar marcas de terceros como nombre propio; revisar los términos (EULA/SDK) y, si no está claro, marcar "REQUIERE REVISIÓN" y no implementar; solo se inspecciona la interfaz pública de lo instalado.
+
+Límite honesto: es la IA quien clasifica y decide, así que **revisa `PLUGINS.md` y las licencias antes de publicar o vender** lo que genere. Esto no es asesoría legal.

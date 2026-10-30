@@ -2,11 +2,11 @@
  * Crea la carpeta de un MCP nuevo a partir de esta plantilla y redacta el prompt
  * que recibira opencode para construirlo.
  */
-import { chmod, copyFile, mkdir, readFile, writeFile, access, rm } from "node:fs/promises";
+import { appendFile, chmod, copyFile, mkdir, readFile, writeFile, access, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { bloqueInvestigacion, bloqueVisual } from "./prompts-pro.mjs";
+import { bloqueInvestigacion, bloqueVisual, bloquePlugins, reglasLegalesExtensiones } from "./prompts-pro.mjs";
 import { instalarModuloVisual } from "./visual.mjs";
 
 export const RAIZ_KIT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -100,7 +100,7 @@ export async function proyectoExiste(slug) {
  * Si ya existe una carpeta con ese nombre: con `sobrescribir` la borra y empieza de cero
  * (aunque el MCP anterior estuviera roto); sin `sobrescribir` lanza un Error con code "EXISTE".
  */
-export async function crearProyecto({ app, rutaApp, objetivo, slug, sobrescribir = false, investigar = false, visual = false }) {
+export async function crearProyecto({ app, rutaApp, objetivo, slug, sobrescribir = false, investigar = false, visual = false, plugins = false }) {
   if (!/^[a-z0-9-]{1,40}$/.test(slug)) throw new Error("Nombre de proyecto invalido.");
   const carpeta = carpetaDeProyecto(slug);
   if (await existe(carpeta)) {
@@ -165,8 +165,9 @@ Las herramientas reales van en \`src/tools/${slug}.ts\` (y otros archivos \`src/
   await writeFile(path.join(carpeta, "AGENTS.md"), reglas + extra, "utf8");
 
   if (visual) await instalarModuloVisual(carpeta, { app });
+  if (plugins) await appendFile(path.join(carpeta, "AGENTS.md"), "\n" + reglasLegalesExtensiones(), "utf8");
 
-  await writeFile(path.join(carpeta, "PROMPT.md"), construirPrompt({ app, rutaApp, objetivo, slug, investigar, visual }), "utf8");
+  await writeFile(path.join(carpeta, "PROMPT.md"), construirPrompt({ app, rutaApp, objetivo, slug, investigar, visual, plugins }), "utf8");
 
   await writeFile(
     path.join(carpeta, ".mcp-constructor.json"),
@@ -256,7 +257,7 @@ const PISTAS = {
 - Revisa si expone **D-Bus** (\`gdbus introspect --session --dest ...\`), una API local, o archivos de datos en \`~/.config\` y \`~/.local/share\`.`,
 };
 
-export function construirPrompt({ app, rutaApp, objetivo, slug, investigar = false, visual = false }) {
+export function construirPrompt({ app, rutaApp, objetivo, slug, investigar = false, visual = false, plugins = false }) {
   const so = nombrePlataforma();
   const meta = (objetivo ?? "").trim().slice(0, 2000);
   return `# Mision
@@ -276,7 +277,7 @@ Construye un servidor **MCP** (Model Context Protocol) en TypeScript que permita
 1. Lee \`AGENTS.md\` y respeta TODAS sus reglas (sin console.log, sin shell con texto del modelo, validar entradas, annotations, etc.).
 2. Mira \`src/tools/_ejemplo.ts\` y \`src/lib/\` para ver el patron. Puedes crear herramientas con \`npm run new-tool -- nombre\`.
 
-${investigar ? bloqueInvestigacion({ app, visual }) : ""}# Fase 1 - Investigar (NO escribas codigo todavia)
+${investigar ? bloqueInvestigacion({ app, visual }) : ""}${plugins ? bloquePlugins({ app }) : ""}# Fase 1 - Investigar (NO escribas codigo todavia)
 
 Averigua como se puede controlar **${app}** desde fuera, probando estas vias de la mas robusta a la mas fragil:
 

@@ -137,7 +137,7 @@ function validarEntrada(cuerpo) {
     return { error: "El modelo debe tener el formato proveedor/modelo (por ejemplo anthropic/claude-sonnet-4)." };
   }
 
-  return { app, rutaApp, objetivo, slug, modelo, sobrescribir: cuerpo.sobrescribir === true, investigar: cuerpo.investigar === true, visual: cuerpo.visual === true };
+  return { app, rutaApp, objetivo, slug, modelo, sobrescribir: cuerpo.sobrescribir === true, investigar: cuerpo.investigar === true, visual: cuerpo.visual === true, plugins: cuerpo.plugins === true };
 }
 
 function validarModelo(valor) {
@@ -204,7 +204,7 @@ async function manejarApi(req, res, url) {
     const m = validarModelo(c.modelo);
     if (m.error) return responderJson(res, 400, { error: m.error });
     if (!(await proyectoExiste(slug))) return responderJson(res, 404, { error: "Proyecto no encontrado." });
-    return iniciarTrabajo(res, ejecutarMejora, { slug, pedido, modelo: m.modelo, investigar: c.investigar === true, visual: c.visual === true }, { slug });
+    return iniciarTrabajo(res, ejecutarMejora, { slug, pedido, modelo: m.modelo, investigar: c.investigar === true, visual: c.visual === true, plugins: c.plugins === true }, { slug });
   }
 
   if (req.method === "POST" && ruta === "/api/suite") {

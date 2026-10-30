@@ -114,6 +114,10 @@
       <span><b>Investigar cómo lo hacen las herramientas líderes</b> (recomendado). Antes de escribir el MCP, opencode busca en el registro oficial de MCP, GitHub, Hugging Face y la documentación de la app qué capacidades ofrecen Claude, ChatGPT, Gemini y otros agentes, para que el MCP no se quede en lo básico. Tarda unos minutos más; desmárcalo si quieres algo rápido.</span>
     </label>
     <label class="consent">
+      <input type="checkbox" id="plugins">
+      <span><b>Analizar plugins y complementos de la app</b> (opcional). Busca qué complementos potencian sus herramientas (incluidos, gratuitos o de pago), los integra si ya los tienes y, cuando la capacidad se pueda lograr con la API oficial de la app, propone <b>desarrollar una alternativa propia</b>. Solo de forma legal: sin copiar código, sin descompilar ni saltarse licencias; los de pago se recomiendan, no se piratean.</span>
+    </label>
+    <label class="consent">
       <input type="checkbox" id="visual">
       <span><b>Permitir control visual</b> (opcional). El MCP podrá <b>ver la ventana de la app y usar mouse y teclado</b> para lo que la API de la app no permite, y comparar lo que ve con una imagen de referencia para recrear algo. Es más lento y requiere permisos del sistema (en Mac: Accesibilidad y Grabación de pantalla). Solo actúa dentro de la ventana de la app y tiene un freno de emergencia.</span>
     </label>
@@ -169,6 +173,7 @@
     <label class="campo" for="mej-pedido">¿Qué quieres mejorar o añadir? (opcional)</label>
     <textarea id="mej-pedido" maxlength="2000" placeholder="Ej: Que pueda crear presentaciones con diseño profesional: temas, gráficos, imágenes y exportar una vista previa para revisar el resultado."></textarea>
     <label class="consent"><input type="checkbox" id="mej-investigar" checked><span>Investigar primero cómo lo hacen las herramientas líderes (registro MCP, GitHub, Hugging Face, documentación).</span></label>
+    <label class="consent"><input type="checkbox" id="mej-plugins"><span>Analizar <b>plugins y complementos</b> de la app y proponer/crear capacidades propias equivalentes (solo de forma legal).</span></label>
     <label class="consent"><input type="checkbox" id="mej-visual"><span>Añadir <b>control visual</b> (ver la ventana y usar mouse/teclado dentro de la app, con freno de emergencia).</span></label>
     <label class="consent"><input type="checkbox" id="mej-acepto"><span>Entiendo que opencode <b>ejecutará comandos y escribirá archivos</b> en la carpeta de este MCP con aprobación automática.</span></label>
     <div class="fila">
@@ -313,7 +318,7 @@ $("construir").addEventListener("click", async () => {
   try {
     const cuerpo = {
       app: app.nombre, rutaApp: app.ruta || "", objetivo: $("objetivo").value,
-      nombre: $("nombre").value, modelo: $("modelo").value, investigar: $("investigar").checked, visual: $("visual").checked,
+      nombre: $("nombre").value, modelo: $("modelo").value, investigar: $("investigar").checked, visual: $("visual").checked, plugins: $("plugins").checked,
     };
     let r;
     try {
@@ -507,7 +512,7 @@ $("mej-ir").addEventListener("click", async () => {
   $("mej-ir").disabled = true;
   try {
     const r = await api("/api/mejorar", { method: "POST", body: JSON.stringify({
-      slug: mejorando.slug, pedido: $("mej-pedido").value, investigar: $("mej-investigar").checked, visual: $("mej-visual").checked, modelo: $("modelo").value,
+      slug: mejorando.slug, pedido: $("mej-pedido").value, investigar: $("mej-investigar").checked, visual: $("mej-visual").checked, plugins: $("mej-plugins").checked, modelo: $("modelo").value,
     }) });
     $("t-mejorar").classList.add("oculto");
     mostrarProgreso(r, mejorando.slug);

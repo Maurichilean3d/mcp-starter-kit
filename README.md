@@ -1,4 +1,4 @@
-> **Rama `pro-vision` (en pruebas):** además, control visual (ver la ventana y usar mouse/teclado). investigación de herramientas líderes, mejorar MCP existentes y suites que combinan varios MCP. Mira [docs/08-edicion-pro.md](docs/08-edicion-pro.md). La rama `main` es la versión estable.
+> **Rama `pro-plugins` (en pruebas):** además, análisis de plugins/complementos con alternativas propias y legales. Incluye control visual. además, control visual (ver la ventana y usar mouse/teclado). investigación de herramientas líderes, mejorar MCP existentes y suites que combinan varios MCP. Mira [docs/08-edicion-pro.md](docs/08-edicion-pro.md). La rama `main` es la versión estable.
 
 # MCP Starter Kit
 

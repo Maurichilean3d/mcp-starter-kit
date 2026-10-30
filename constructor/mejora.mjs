@@ -2,14 +2,14 @@
  * Mejorar / reacondicionar un MCP ya creado: respaldo, actualizacion de los lanzadores del kit y MEJORA.md.
  * La IA solo modifica el codigo; si no logra dejarlo funcionando, se restaura el respaldo.
  */
-import { cp, mkdir, readdir, readFile, rm, writeFile, copyFile, access } from "node:fs/promises";
+import { appendFile, cp, mkdir, readdir, readFile, rm, writeFile, copyFile, access } from "node:fs/promises";
 import path from "node:path";
 import { ARCHIVOS, RAIZ_KIT, carpetaDeProyecto, crearLanzadores } from "./proyecto.mjs";
-import { construirPromptMejora } from "./prompts-pro.mjs";
+import { construirPromptMejora, reglasLegalesExtensiones } from "./prompts-pro.mjs";
 import { instalarModuloVisual, tieneVisual } from "./visual.mjs";
 
 const existe = (p) => access(p).then(() => true, () => false);
-const A_RESPALDAR = ["VISUAL.md", "src", "scripts", "package.json", "package-lock.json", "README.md", "AGENTS.md", "opencode.json", "RESEARCH.md", "CHANGELOG.md", ".mcp-constructor.json"];
+const A_RESPALDAR = ["VISUAL.md", "src", "scripts", "package.json", "package-lock.json", "README.md", "AGENTS.md", "opencode.json", "RESEARCH.md", "PLUGINS.md", "CHANGELOG.md", ".mcp-constructor.json"];
 // Scripts propios del MCP que la IA pudo adaptar: no se pisan al actualizar.
 const NO_ACTUALIZAR = new Set(["scripts/smoke-test.mjs", "scripts/new-tool.mjs", "scripts/listar-herramientas.mjs"]);
 
@@ -57,13 +57,14 @@ export async function actualizarArranque(carpeta, { app, slug }) {
   return crearLanzadores(carpeta, { app, slug });
 }
 
-export async function prepararMejora({ slug, pedido, investigar, visual = false }) {
+export async function prepararMejora({ slug, pedido, investigar, visual = false, plugins = false }) {
   const { carpeta, datos } = await leerProyecto(slug);
   const app = datos.app ?? slug;
   const respaldo = await respaldar(carpeta);
   const lanzador = await actualizarArranque(carpeta, { app, slug });
   if (visual) await instalarModuloVisual(carpeta, { app });
+  if (plugins && !(await readFile(path.join(carpeta, "AGENTS.md"), "utf8").catch(() => "")).includes("Reglas de legalidad para plugins")) await appendFile(path.join(carpeta, "AGENTS.md"), "\n" + reglasLegalesExtensiones(), "utf8");
   const conVisual = visual || (await tieneVisual(carpeta));
-  await writeFile(path.join(carpeta, "MEJORA.md"), construirPromptMejora({ app, slug, pedido, investigar, visual: conVisual }), "utf8");
+  await writeFile(path.join(carpeta, "MEJORA.md"), construirPromptMejora({ app, slug, pedido, investigar, visual: conVisual, plugins }), "utf8");
   return { carpeta, app, respaldo, lanzador };
 }
