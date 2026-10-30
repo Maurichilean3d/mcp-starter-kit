@@ -19,14 +19,21 @@ echo Instalando Node.js con winget. Si Windows pide permiso, acepta...
 winget install -e --id OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements
 call :comprobar
 if not errorlevel 1 goto listo
+echo.
+echo winget no pudo instalar Node.js ^(si cancelaste el permiso de administrador, es normal^). Instalo una version que no necesita administrador...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0instalar-node.ps1" -SoloPortable
+call :comprobar
+if not errorlevel 1 goto listo
+goto fallo
 
 :viaps
 echo.
-echo Descargando e instalando Node.js desde nodejs.org. Si Windows pide permiso, acepta...
+echo Descargando e instalando Node.js desde nodejs.org. Si Windows pide permiso, pulsa SI. Si no puedes, se instala una version sin permisos de administrador.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0instalar-node.ps1"
 call :comprobar
 if not errorlevel 1 goto listo
 
+:fallo
 echo.
 echo No pude dejar Node.js listo. Instalalo a mano desde https://nodejs.org ^(version LTS^) y vuelve a ejecutar este archivo.
 exit /b 1
@@ -45,6 +52,7 @@ exit /b 0
 where node >nul 2>nul
 if not errorlevel 1 goto vercomp
 if exist "%ProgramFiles%\nodejs\node.exe" set "PATH=%ProgramFiles%\nodejs;%PATH%"
+if exist "%LOCALAPPDATA%\mcp-starter-kit\node\node.exe" set "PATH=%LOCALAPPDATA%\mcp-starter-kit\node;%PATH%"
 where node >nul 2>nul
 if errorlevel 1 exit /b 1
 :vercomp
