@@ -3,10 +3,10 @@
 # Descarga el kit con curl: los archivos NO llevan la marca "descargado de internet", asi que macOS
 # no muestra la alerta de "archivo potencialmente peligroso". Luego abre el instalador/menu.
 #
-#   curl -fsSL https://raw.githubusercontent.com/Maurichilean3d/mcp-starter-kit/pro/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Maurichilean3d/mcp-starter-kit/pro-vision/install.sh | bash
 set -e
 REPO="Maurichilean3d/mcp-starter-kit"
-DEST="${MCP_KIT_DIR:-$HOME/mcp-starter-kit-pro}"
+DEST="${MCP_KIT_DIR:-$HOME/mcp-starter-kit-vision}"
 
 echo "============================================"
 echo "  MCP Starter Kit - descarga e instalacion"
@@ -17,7 +17,7 @@ command -v unzip >/dev/null 2>&1 || { echo "ERROR: falta unzip."; exit 1; }
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 echo "Descargando el kit..."
-curl -fsSL "https://github.com/$REPO/archive/refs/heads/pro.zip" -o "$TMP/kit.zip"
+curl -fsSL "https://github.com/$REPO/archive/refs/heads/pro-vision.zip" -o "$TMP/kit.zip"
 unzip -q "$TMP/kit.zip" -d "$TMP"
 SRC="$(find "$TMP" -mindepth 1 -maxdepth 1 -type d | head -n1)"
 
