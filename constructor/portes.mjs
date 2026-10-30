@@ -6,6 +6,7 @@ import { access, mkdir, readFile, rm, writeFile, copyFile } from "node:fs/promis
 import path from "node:path";
 import { PERMISOS_OPENCODE, carpetaDeProyecto } from "./proyecto.mjs";
 import { Cancelado, correrOpencode, elegirModelos } from "./trabajo.mjs";
+import { esObjetivoNativo, instalarGhidra, rutasGhidra } from "../scripts/lib-ghidra.mjs";
 import { entradaMcpRea, REA_VERSION } from "./rea.mjs";
 import {
   NOMBRES_AUTORIZACION, NOMBRES_DESTINO, agentsAnalisis, agentsImplementacion, promptAnalisis, promptImplementacion,
@@ -62,6 +63,11 @@ export async function ejecutarPorte(trabajo, { slug, nombre, rutaObjetivo, objet
       const previo = JSON.parse(await readFile(path.join(carpeta, ".mcp-constructor.json"), "utf8").catch(() => "{}"));
       if (previo.tipo !== "porte") return falla("preparar", `La carpeta ${carpeta} no es un proyecto de porte; no la borro.`);
       await rm(carpeta, { recursive: true, force: true, maxRetries: 5, retryDelay: 400 });
+    }
+    if (esObjetivoNativo(rutaObjetivo) && !rutasGhidra()) {
+      trabajo.log("El objetivo es un programa nativo: preparando Ghidra + Java portables (descarga unos ~600 MB, solo la primera vez)...\n");
+      try { await instalarGhidra((m) => trabajo.log(m + "\n")); }
+      catch (e) { trabajo.log("No pude instalar Ghidra automaticamente: " + e.message + "\nSe continua; REA usara lo que encuentre instalado (Hopper/IDA/Ghidra propios).\n"); }
     }
     const analisis = path.join(carpeta, "analisis");
     const impl = path.join(carpeta, "implementacion");

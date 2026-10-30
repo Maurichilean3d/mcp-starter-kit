@@ -81,6 +81,6 @@ Resultado: `INFORME-LEGAL.md` (qué se hizo y con qué base declarada) y `AUTORI
 
 **Fuera de alcance (igual que el aviso de REA):** saltarse licencias o DRM, anti-trampas, evadir autenticación, servicios en línea de terceros, copiar código o recursos propietarios.
 
-**Requisitos:** internet la primera vez (`npx` descarga REA). Para binarios nativos REA necesita Ghidra, Hopper, IDA o Kuna instalados por ti; para apps Electron/JS (carpeta o `.asar`) no necesita nada extra.
+**Requisitos:** internet la primera vez (`npx` descarga REA). Si el objetivo es un **programa nativo** (.exe, .dll, .so, .dylib…), el sistema **instala solo Ghidra 12.1.4 (Apache-2.0) y Java 21 (Temurin) portables**, sin administrador, en `~/.mcp-kit/herramientas` (~600 MB, una vez; puedes borrar la carpeta cuando quieras) y se los pasa a REA. También se puede hacer a mano con `node scripts/asegurar-ghidra.mjs`. Para apps Electron/JS (carpeta o `.asar`) no hace falta nada. **Hopper e IDA son de pago: no se instalan solos**; si ya los tienes, REA los usa.
 
-**Estado de las pruebas:** flujo completo (autorización, revisión, separación de carpetas, agregar/quitar REA) probado con un opencode simulado. **No se ha ejecutado con REA ni un modelo reales**, ni en Windows/macOS.
+**Estado de las pruebas:** flujo completo (autorización, revisión, separación de carpetas, agregar/quitar REA) probado con un opencode simulado. **No se ha ejecutado con REA ni un modelo reales, ni la descarga real de Ghidra/Java** (solo la detección, el paso de variables a REA y el respaldo si la descarga falla), ni en Windows/macOS.

@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { rutasGhidra } from "../scripts/lib-ghidra.mjs";
 /**
  * Integracion con REA ("Reverse Engineer Anything", github.com/morluto/rea, licencia MIT).
  * REA se usa como servidor MCP EXTERNO (no se copia su codigo): se registra en opencode con la version fijada.
@@ -8,7 +9,10 @@ import path from "node:path";
 export const REA_VERSION = "6.8.0";
 
 export function entradaMcpRea() {
-  return { type: "local", command: ["npx", "-y", `rea-agents@${REA_VERSION}`, "mcp"], enabled: true, timeout: 120000 };
+  const e = { type: "local", command: ["npx", "-y", `rea-agents@${REA_VERSION}`, "mcp"], enabled: true, timeout: 120000 };
+  const g = rutasGhidra(); // si Ghidra/Java portables estan instalados, REA los usa
+  if (g) e.environment = { GHIDRA_INSTALL_DIR: g.ghidra, JAVA_HOME: g.java };
+  return e;
 }
 
 /** Texto del descargo de REA que tambien aplicamos a nuestros flujos. */
