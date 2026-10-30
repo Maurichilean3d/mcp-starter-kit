@@ -6,6 +6,7 @@ import { chmod, copyFile, mkdir, readFile, writeFile, access, rm } from "node:fs
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { bloqueInvestigacion } from "./prompts-pro.mjs";
 
 export const RAIZ_KIT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -32,7 +33,7 @@ export function slugify(texto) {
 const existe = (p) => access(p).then(() => true, () => false);
 
 // Archivos de la plantilla que se copian tal cual a cada MCP nuevo.
-const ARCHIVOS = [
+export const ARCHIVOS = [
   "tsconfig.json",
   ".gitignore",
   "src/lib/exec.ts",
@@ -44,6 +45,7 @@ const ARCHIVOS = [
   "scripts/lanzar.mjs",
   "scripts/abrir-app-y-opencode.mjs",
   "scripts/lib-arranque.mjs",
+  "scripts/lib-apps.mjs",
   "scripts/cerrar-mcp.mjs",
   "scripts/estado-mcp.mjs",
   "scripts/asegurar-node.bat",
@@ -54,7 +56,7 @@ const ARCHIVOS = [
 ];
 
 // Reglas que bloquean lo mas peligroso. Son una red de seguridad, NO un aislamiento completo.
-const PERMISOS_OPENCODE = {
+export const PERMISOS_OPENCODE = {
   $schema: "https://opencode.ai/config.json",
   permission: {
     edit: "allow",
@@ -97,7 +99,7 @@ export async function proyectoExiste(slug) {
  * Si ya existe una carpeta con ese nombre: con `sobrescribir` la borra y empieza de cero
  * (aunque el MCP anterior estuviera roto); sin `sobrescribir` lanza un Error con code "EXISTE".
  */
-export async function crearProyecto({ app, rutaApp, objetivo, slug, sobrescribir = false }) {
+export async function crearProyecto({ app, rutaApp, objetivo, slug, sobrescribir = false, investigar = false }) {
   if (!/^[a-z0-9-]{1,40}$/.test(slug)) throw new Error("Nombre de proyecto invalido.");
   const carpeta = carpetaDeProyecto(slug);
   if (await existe(carpeta)) {
@@ -161,7 +163,7 @@ Las herramientas reales van en \`src/tools/${slug}.ts\` (y otros archivos \`src/
 `;
   await writeFile(path.join(carpeta, "AGENTS.md"), reglas + extra, "utf8");
 
-  await writeFile(path.join(carpeta, "PROMPT.md"), construirPrompt({ app, rutaApp, objetivo, slug }), "utf8");
+  await writeFile(path.join(carpeta, "PROMPT.md"), construirPrompt({ app, rutaApp, objetivo, slug, investigar }), "utf8");
 
   await writeFile(
     path.join(carpeta, ".mcp-constructor.json"),
@@ -177,7 +179,7 @@ Las herramientas reales van en \`src/tools/${slug}.ts\` (y otros archivos \`src/
  * Crea el doble clic "Abrir-<slug>" (.bat para Windows, .command para Mac) que abre a la vez
  * la aplicacion elegida y opencode con el MCP. Devuelve el nombre base del lanzador.
  */
-async function crearLanzadores(carpeta, { app, slug }) {
+export async function crearLanzadores(carpeta, { app, slug, script = "abrir-app-y-opencode.mjs" }) {
   const nombre = `Abrir-${slug}`;
   const textoApp = String(app).replace(/[\r\n"%^&|<>]/g, " ");
   const bat = `@echo off
@@ -193,7 +195,7 @@ title ${textoApp} + opencode
 set "PATH=%APPDATA%\\npm;%LOCALAPPDATA%\\agy\\bin;%PATH%"
 call "%~dp0scripts\\asegurar-node.bat"
 if errorlevel 1 exit /b 1
-node scripts\\abrir-app-y-opencode.mjs
+node scripts\\${script}
 exit /b %errorlevel%
 `;
   await writeFile(path.join(carpeta, `${nombre}.bat`), bat.replace(/\r?\n/g, "\r\n"), "utf8");
@@ -209,7 +211,7 @@ export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
 pausa() { echo; read -n 1 -s -r -p "Presiona una tecla para cerrar..."; echo; }
 . scripts/asegurar-node.sh
 asegurar_node || { pausa; exit 1; }
-node scripts/abrir-app-y-opencode.mjs || pausa
+node scripts/${script} || pausa
 `;
   const rutaCommand = path.join(carpeta, `${nombre}.command`);
   await writeFile(rutaCommand, command, "utf8");
@@ -251,7 +253,7 @@ const PISTAS = {
 - Revisa si expone **D-Bus** (\`gdbus introspect --session --dest ...\`), una API local, o archivos de datos en \`~/.config\` y \`~/.local/share\`.`,
 };
 
-export function construirPrompt({ app, rutaApp, objetivo, slug }) {
+export function construirPrompt({ app, rutaApp, objetivo, slug, investigar = false }) {
   const so = nombrePlataforma();
   const meta = (objetivo ?? "").trim().slice(0, 2000);
   return `# Mision
@@ -271,7 +273,7 @@ Construye un servidor **MCP** (Model Context Protocol) en TypeScript que permita
 1. Lee \`AGENTS.md\` y respeta TODAS sus reglas (sin console.log, sin shell con texto del modelo, validar entradas, annotations, etc.).
 2. Mira \`src/tools/_ejemplo.ts\` y \`src/lib/\` para ver el patron. Puedes crear herramientas con \`npm run new-tool -- nombre\`.
 
-# Fase 1 - Investigar (NO escribas codigo todavia)
+${investigar ? bloqueInvestigacion({ app }) : ""}# Fase 1 - Investigar (NO escribas codigo todavia)
 
 Averigua como se puede controlar **${app}** desde fuera, probando estas vias de la mas robusta a la mas fragil:
 

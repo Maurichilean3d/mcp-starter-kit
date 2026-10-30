@@ -9,6 +9,9 @@ import { execFile, spawn } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { crearProyecto } from "./proyecto.mjs";
+import { prepararMejora, restaurar } from "./mejora.mjs";
+import { crearSuite } from "./suite.mjs";
+import { MENSAJE_FLUJOS, MENSAJE_MEJORAR } from "./prompts-pro.mjs";
 
 export const PASOS = [
   { id: "preparar", titulo: "Preparar el proyecto" },
@@ -16,6 +19,19 @@ export const PASOS = [
   { id: "generar", titulo: "opencode investiga la app y escribe el MCP" },
   { id: "verificar", titulo: "Compilar y probar (con reparacion automatica)" },
   { id: "resumen", titulo: "Resumir las herramientas creadas" },
+];
+
+export const PASOS_MEJORA = [
+  { id: "preparar", titulo: "Respaldar el MCP y actualizar sus lanzadores" },
+  { id: "generar", titulo: "opencode investiga y mejora el MCP" },
+  { id: "verificar", titulo: "Compilar y probar (con reparacion automatica)" },
+  { id: "resumen", titulo: "Resumir las herramientas" },
+];
+
+export const PASOS_SUITE = [
+  { id: "preparar", titulo: "Crear la suite y conectar los MCP" },
+  { id: "generar", titulo: "opencode propone flujos entre las aplicaciones (opcional)" },
+  { id: "resumen", titulo: "Listo" },
 ];
 
 const ANSI = /\x1B\[[0-9;?]*[ -/]*[@-~]|\x1B\][^\x07]*\x07/g;
@@ -254,14 +270,14 @@ function fallar(trabajo, pasoId, mensaje) {
   trabajo.emitir({ tipo: "fin", ok: false, mensaje });
 }
 
-export async function ejecutarTrabajo(trabajo, { app, rutaApp, objetivo, slug, modelo, sobrescribir }) {
+export async function ejecutarTrabajo(trabajo, { app, rutaApp, objetivo, slug, modelo, sobrescribir, investigar }) {
   trabajo.emitir({ tipo: "pasos", pasos: PASOS });
   let carpeta;
   try {
     // 1. preparar
     trabajo.paso("preparar", "en_curso");
     let lanzador;
-    ({ carpeta, lanzador } = await crearProyecto({ app, rutaApp, objetivo, slug, sobrescribir }));
+    ({ carpeta, lanzador } = await crearProyecto({ app, rutaApp, objetivo, slug, sobrescribir, investigar }));
     trabajo.log(`Proyecto creado en: ${carpeta}\n`);
     trabajo.paso("preparar", "ok", carpeta);
 
@@ -293,20 +309,8 @@ export async function ejecutarTrabajo(trabajo, { app, rutaApp, objetivo, slug, m
 
     // 4. verificar + reparar
     trabajo.paso("verificar", "en_curso");
-    let verif = await compilarYProbar(trabajo, carpeta);
-    for (let intento = 1; !verif.ok && intento <= MAX_REPARACIONES; intento++) {
-      if (trabajo.cancelado) throw new Cancelado();
-      trabajo.paso("verificar", "en_curso", `Reparacion automatica ${intento} de ${MAX_REPARACIONES}`);
-      trabajo.log(`\n=== opencode intenta reparar el error (${intento}/${MAX_REPARACIONES}) ===\n`);
-      await writeFile(path.join(carpeta, "ERROR.log"), verif.salida.replace(ANSI, "").slice(-12_000), "utf8");
-      const rep = await correrOpencode(trabajo, carpeta, MENSAJE_REPARAR, { modelos: [trabajo.modeloUsado ?? modelo], continuar: true });
-      if (trabajo.cancelado) throw new Cancelado();
-      if (rep.code === 127) break;
-      if (rep.code !== 0) trabajo.log("\n[opencode no pudo completar esta reparacion; vuelvo a comprobar y sigo]\n");
-      verif = await compilarYProbar(trabajo, carpeta);
-    }
+    const verif = await verificarConReparacion(trabajo, carpeta, modelo);
     if (!verif.ok) {
-      await writeFile(path.join(carpeta, "ERROR.log"), verif.salida.replace(ANSI, "").slice(-12_000), "utf8");
       return fallar(
         trabajo,
         "verificar",
@@ -335,6 +339,112 @@ export async function ejecutarTrabajo(trabajo, { app, rutaApp, objetivo, slug, m
     trabajo.terminado = true;
     trabajo.resultado = { ok: false, mensaje };
     trabajo.emitir({ tipo: "fin", ok: false, mensaje });
+  }
+}
+
+/** Compila y prueba; si falla, deja que opencode repare hasta MAX_REPARACIONES veces. Devuelve { ok, salida }. */
+async function verificarConReparacion(trabajo, carpeta, modelo) {
+  let verif = await compilarYProbar(trabajo, carpeta);
+  for (let intento = 1; !verif.ok && intento <= MAX_REPARACIONES; intento++) {
+    if (trabajo.cancelado) throw new Cancelado();
+    trabajo.paso("verificar", "en_curso", `Reparacion automatica ${intento} de ${MAX_REPARACIONES}`);
+    trabajo.log(`\n=== opencode intenta reparar el error (${intento}/${MAX_REPARACIONES}) ===\n`);
+    await writeFile(path.join(carpeta, "ERROR.log"), verif.salida.replace(ANSI, "").slice(-12_000), "utf8");
+    const rep = await correrOpencode(trabajo, carpeta, MENSAJE_REPARAR, { modelos: [trabajo.modeloUsado ?? modelo], continuar: true });
+    if (trabajo.cancelado) throw new Cancelado();
+    if (rep.code === 127) break;
+    if (rep.code !== 0) trabajo.log("\n[opencode no pudo completar esta reparacion; vuelvo a comprobar y sigo]\n");
+    verif = await compilarYProbar(trabajo, carpeta);
+  }
+  if (!verif.ok) await writeFile(path.join(carpeta, "ERROR.log"), verif.salida.replace(ANSI, "").slice(-12_000), "utf8");
+  return verif;
+}
+
+function errorFinal(e, trabajo) {
+  const mensaje = e instanceof Cancelado ? "Proceso cancelado." : `Error inesperado: ${e instanceof Error ? e.message : e}`;
+  trabajo.paso(trabajo.pasoActual ?? "preparar", e instanceof Cancelado ? "cancelado" : "error", mensaje);
+  trabajo.terminado = true;
+  trabajo.resultado = { ok: false, mensaje };
+  trabajo.emitir({ tipo: "fin", ok: false, mensaje });
+}
+
+/** MEJORAR un MCP existente. Si no queda funcionando, se restaura el respaldo. */
+export async function ejecutarMejora(trabajo, { slug, pedido, modelo, investigar }) {
+  trabajo.emitir({ tipo: "pasos", pasos: PASOS_MEJORA });
+  let ctx;
+  try {
+    trabajo.paso("preparar", "en_curso");
+    ctx = await prepararMejora({ slug, pedido, investigar });
+    trabajo.log(`Respaldo guardado en: ${ctx.respaldo}\n`);
+    const inst = await trabajo.ejecutar("npm", ["install", "--no-audit", "--no-fund"], { cwd: ctx.carpeta, limiteMs: 10 * 60 * 1000 });
+    if (trabajo.cancelado) throw new Cancelado();
+    if (inst.code !== 0) return fallar(trabajo, "preparar", "No se pudieron instalar las dependencias (npm install). Revisa tu conexion a internet.");
+    trabajo.paso("preparar", "ok", "Respaldo creado");
+
+    trabajo.paso("generar", "en_curso", "Puede tardar varios minutos");
+    const modelos = await elegirModelos(trabajo, modelo);
+    const gen = await correrOpencode(trabajo, ctx.carpeta, MENSAJE_MEJORAR, { modelos, continuar: false });
+    if (trabajo.cancelado) throw new Cancelado();
+    if (gen.code !== 0) {
+      await restaurar(ctx.carpeta, ctx.respaldo);
+      return fallar(trabajo, "generar", (gen.code === 127 ? "opencode no esta instalado o no esta en el PATH." : "opencode termino con error.") + " Deje tu MCP como estaba (restaure el respaldo).");
+    }
+    trabajo.paso("generar", "ok");
+
+    trabajo.paso("verificar", "en_curso");
+    const verif = await verificarConReparacion(trabajo, ctx.carpeta, modelo);
+    if (!verif.ok) {
+      await restaurar(ctx.carpeta, ctx.respaldo);
+      return fallar(trabajo, "verificar", `Los cambios no pasaron la compilacion/pruebas. Restaure tu MCP anterior para que siga funcionando. Ultimo error:\n${resumenError(verif.salida)}\nDetalle en ${path.join(ctx.carpeta, "ERROR.log")}`);
+    }
+    trabajo.paso("verificar", "ok");
+
+    trabajo.paso("resumen", "en_curso");
+    const lista = await listarHerramientas(ctx.carpeta);
+    trabajo.emitir({ tipo: "herramientas", lista });
+    trabajo.paso("resumen", "ok", `${lista.length} herramientas`);
+    trabajo.terminado = true;
+    trabajo.resultado = { ok: true, slug, carpeta: ctx.carpeta };
+    trabajo.emitir({
+      tipo: "fin", ok: true, proyecto: { slug, carpeta: ctx.carpeta },
+      mensaje: `MCP mejorado y verificado (${lista.length} herramientas). Se guardo un respaldo en ${ctx.respaldo}. Si usas suites que lo incluyen, reabrelas para que lo tomen. Lanzador: ${ctx.lanzador}.bat / .command.`,
+    });
+  } catch (e) {
+    if (ctx) await restaurar(ctx.carpeta, ctx.respaldo).catch(() => {});
+    errorFinal(e, trabajo);
+  }
+}
+
+/** Crear una SUITE (varios MCP trabajando juntos) y pedir a opencode flujos de ejemplo (paso opcional). */
+export async function ejecutarSuite(trabajo, { nombre, slug, miembros, objetivo, modelo, sobrescribir }) {
+  trabajo.emitir({ tipo: "pasos", pasos: PASOS_SUITE });
+  try {
+    trabajo.paso("preparar", "en_curso");
+    const r = await crearSuite({ nombre, slug, miembros, objetivo, sobrescribir });
+    trabajo.log(`Suite creada en: ${r.carpeta}\nMCP: ${r.miembros.map((m) => m.slug).join(", ")}\n`);
+    trabajo.paso("preparar", "ok", r.carpeta);
+
+    trabajo.paso("generar", "en_curso", "Puede tardar unos minutos");
+    try {
+      const modelos = await elegirModelos(trabajo, modelo);
+      const gen = await correrOpencode(trabajo, r.carpeta, MENSAJE_FLUJOS, { modelos, continuar: false });
+      if (trabajo.cancelado) throw new Cancelado();
+      trabajo.paso("generar", "ok", gen.code === 0 ? "FLUJOS.md escrito" : "No se pudo generar FLUJOS.md; la suite funciona igual");
+    } catch (e) {
+      if (e instanceof Cancelado) throw e;
+      trabajo.paso("generar", "ok", "Omitido; la suite funciona igual");
+    }
+
+    trabajo.paso("resumen", "en_curso");
+    trabajo.paso("resumen", "ok");
+    trabajo.terminado = true;
+    trabajo.resultado = { ok: true, slug, carpeta: r.carpeta };
+    trabajo.emitir({
+      tipo: "fin", ok: true, proyecto: { slug, carpeta: r.carpeta, suite: true },
+      mensaje: `Suite lista con ${r.miembros.length} MCP. Para abrir todas las apps y opencode juntos: doble clic en ${r.lanzador}.bat (Windows) o ${r.lanzador}.command (Mac), dentro de ${r.carpeta}. Pasa archivos entre apps por la carpeta intercambio/.`,
+    });
+  } catch (e) {
+    errorFinal(e, trabajo);
   }
 }
 

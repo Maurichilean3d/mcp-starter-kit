@@ -109,6 +109,10 @@
     <textarea id="objetivo" maxlength="2000" placeholder="Ej: Quiero que la IA pueda buscar mis notas, leerlas y crear una nueva. Primero solo lectura.&#10;&#10;Si lo dejas vacío, opencode propondrá las herramientas más útiles y seguras."></textarea>
     <label class="campo" for="nombre">Nombre del MCP (se usa en opencode)</label>
     <input type="text" id="nombre" maxlength="40" placeholder="Se completa solo con el nombre de la app">
+    <label class="consent" style="margin-top:14px">
+      <input type="checkbox" id="investigar" checked>
+      <span><b>Investigar cómo lo hacen las herramientas líderes</b> (recomendado). Antes de escribir el MCP, opencode busca en el registro oficial de MCP, GitHub, Hugging Face y la documentación de la app qué capacidades ofrecen Claude, ChatGPT, Gemini y otros agentes, para que el MCP no se quede en lo básico. Tarda unos minutos más; desmárcalo si quieres algo rápido.</span>
+    </label>
     <details>
       <summary>Opciones avanzadas</summary>
       <label class="campo" for="modelo">Modelo para opencode (opcional, formato proveedor/modelo)</label>
@@ -153,6 +157,34 @@
   <section class="tarjeta" id="t-proyectos">
     <h2>Mis MCP creados</h2>
     <div id="proyectos"><span class="detalle">Todavía no has creado ninguno.</span></div>
+  </section>
+
+  <section class="tarjeta oculto" id="t-mejorar">
+    <h2>Mejorar un MCP: <span id="mej-nombre"></span></h2>
+    <p class="detalle" style="margin-top:0">Se hace un respaldo, opencode amplía el MCP sin quitarle lo que ya tiene y, si algo sale mal, se restaura el respaldo automáticamente. También se actualizan sus lanzadores (abrir/cerrar).</p>
+    <label class="campo" for="mej-pedido">¿Qué quieres mejorar o añadir? (opcional)</label>
+    <textarea id="mej-pedido" maxlength="2000" placeholder="Ej: Que pueda crear presentaciones con diseño profesional: temas, gráficos, imágenes y exportar una vista previa para revisar el resultado."></textarea>
+    <label class="consent"><input type="checkbox" id="mej-investigar" checked><span>Investigar primero cómo lo hacen las herramientas líderes (registro MCP, GitHub, Hugging Face, documentación).</span></label>
+    <label class="consent"><input type="checkbox" id="mej-acepto"><span>Entiendo que opencode <b>ejecutará comandos y escribirá archivos</b> en la carpeta de este MCP con aprobación automática.</span></label>
+    <div class="fila">
+      <button class="principal" id="mej-ir" disabled>Mejorar este MCP</button>
+      <button class="sec" id="mej-cancelar" type="button">Cerrar</button>
+    </div>
+  </section>
+
+  <section class="tarjeta" id="t-suite">
+    <h2>Combinar varios MCP en una suite</h2>
+    <p class="detalle" style="margin-top:0">Une 2 o más MCP ya creados para que opencode los use a la vez (por ejemplo, dibujar en una app y llevar el resultado a una presentación). Se crea un lanzador que abre todas las apps y opencode juntos.</p>
+    <div id="suite-lista"><span class="detalle">Necesitas al menos dos MCP creados.</span></div>
+    <label class="campo" for="suite-nombre">Nombre de la suite</label>
+    <input type="text" id="suite-nombre" maxlength="60" placeholder="Ej: Presentaciones con ilustraciones">
+    <label class="campo" for="suite-objetivo">¿Qué quieres lograr combinándolos? (opcional)</label>
+    <textarea id="suite-objetivo" maxlength="2000" placeholder="Ej: Dibujar ilustraciones en Illustrator y ponerlas en una presentación de PowerPoint; luego aplicar filtros de Photoshop a todas las imágenes."></textarea>
+    <label class="consent"><input type="checkbox" id="suite-acepto"><span>Entiendo que opencode <b>podrá ejecutar comandos y escribir archivos</b> en la carpeta de la suite con aprobación automática.</span></label>
+    <div class="fila">
+      <button class="principal" id="suite-ir" disabled>Crear suite</button>
+      <span class="detalle" id="suite-ayuda"></span>
+    </div>
   </section>
 
   <p class="detalle"><button class="enlace" id="salir" type="button">Cerrar el constructor</button></p>
@@ -276,7 +308,7 @@ $("construir").addEventListener("click", async () => {
   try {
     const cuerpo = {
       app: app.nombre, rutaApp: app.ruta || "", objetivo: $("objetivo").value,
-      nombre: $("nombre").value, modelo: $("modelo").value,
+      nombre: $("nombre").value, modelo: $("modelo").value, investigar: $("investigar").checked,
     };
     let r;
     try {
@@ -357,12 +389,14 @@ function manejar(e) {
     terminado = true;
     enCurso = false;
     actualizarBoton();
+    actualizarMejBoton();
+    actualizarSuiteBoton();
     if (fuente) fuente.close();
     const fin = $("fin");
     fin.className = "banner " + (e.ok ? "ok" : "error");
     fin.textContent = e.mensaje;
     fin.classList.remove("oculto");
-    if (e.ok && e.proyecto) {
+    if (e.ok && e.proyecto && !e.proyecto.suite) {
       carpetaActual = e.proyecto;
       $("t-resultado").classList.remove("oculto");
       $("t-resultado").scrollIntoView({ behavior: "smooth" });
@@ -411,17 +445,99 @@ async function cargarProyectos() {
   if (!proyectos.length) return;
   cont.replaceChildren();
   for (const p of proyectos) {
+    const esSuite = p.tipo === "suite";
     cont.append(el("div", { class: "proyecto" },
-      el("div", {}, el("b", {}, p.app), el("span", { class: "detalle" }, `  ·  ${p.slug}  ·  ${p.activado ? "activado en opencode" : "sin activar"}`)),
+      el("div", {}, el("b", {}, p.app), el("span", { class: "detalle" },
+        esSuite ? `  ·  suite de: ${(p.miembros || []).join(", ")}` : `  ·  ${p.slug}  ·  ${p.activado ? "activado en opencode" : "sin activar"}`)),
       el("div", { class: "fila" },
         el("button", { class: "sec", onclick: () => api("/api/abrir-carpeta", { method: "POST", body: JSON.stringify({ slug: p.slug }) }) }, "Abrir carpeta"),
-        p.activado ? "" : el("button", { class: "sec", onclick: async (ev) => {
+        esSuite ? "" : el("button", { class: "sec", onclick: () => abrirMejora(p) }, "Mejorar…"),
+        esSuite || p.activado ? "" : el("button", { class: "sec", onclick: async (ev) => {
           ev.target.disabled = true;
           try { await api("/api/activar", { method: "POST", body: JSON.stringify({ slug: p.slug }) }); } catch (e) { alert(e.message); }
           cargarProyectos();
         } }, "Activar en opencode"))));
   }
+  pintarSuite(proyectos.filter((p) => p.tipo !== "suite"));
 }
+
+// ---------- mejorar / suites ----------
+let mejorando = null;
+
+function mostrarProgreso(r, slug) {
+  trabajoActual = { id: r.id, slug };
+  enCurso = true;
+  actualizarBoton();
+  actualizarSuiteBoton();
+  $("t-resultado").classList.add("oculto");
+  $("activado").classList.add("oculto");
+  $("t-progreso").classList.remove("oculto");
+  $("t-progreso").scrollIntoView({ behavior: "smooth" });
+  conectar(r.id);
+}
+
+/** Lanza un trabajo; si el servidor dice que ya existe, pregunta si sobrescribir. */
+async function lanzarTrabajo(ruta, cuerpo, preguntaSobrescribir) {
+  try {
+    return await api(ruta, { method: "POST", body: JSON.stringify(cuerpo) });
+  } catch (e) {
+    if (!e.existe || !preguntaSobrescribir) throw e;
+    if (!confirm(preguntaSobrescribir)) throw new Error("Cancelado.");
+    return api(ruta, { method: "POST", body: JSON.stringify({ ...cuerpo, sobrescribir: true }) });
+  }
+}
+
+function abrirMejora(p) {
+  mejorando = p;
+  $("mej-nombre").textContent = p.app + " (" + p.slug + ")";
+  $("t-mejorar").classList.remove("oculto");
+  $("t-mejorar").scrollIntoView({ behavior: "smooth" });
+  actualizarMejBoton();
+}
+function actualizarMejBoton() { $("mej-ir").disabled = !(mejorando && $("mej-acepto").checked && estado?.opencode?.instalado && !enCurso); }
+$("mej-acepto").addEventListener("change", actualizarMejBoton);
+$("mej-cancelar").addEventListener("click", () => { mejorando = null; $("t-mejorar").classList.add("oculto"); });
+$("mej-ir").addEventListener("click", async () => {
+  if (!mejorando) return;
+  $("mej-ir").disabled = true;
+  try {
+    const r = await api("/api/mejorar", { method: "POST", body: JSON.stringify({
+      slug: mejorando.slug, pedido: $("mej-pedido").value, investigar: $("mej-investigar").checked, modelo: $("modelo").value,
+    }) });
+    $("t-mejorar").classList.add("oculto");
+    mostrarProgreso(r, mejorando.slug);
+  } catch (e) { alert(e.message); actualizarMejBoton(); }
+});
+
+function pintarSuite(mcps) {
+  const cont = $("suite-lista");
+  cont.replaceChildren();
+  if (mcps.length < 2) { cont.append(el("span", { class: "detalle" }, "Necesitas al menos dos MCP creados.")); actualizarSuiteBoton(); return; }
+  for (const p of mcps) {
+    const cb = el("input", { type: "checkbox", value: p.slug });
+    cb.addEventListener("change", actualizarSuiteBoton);
+    cont.append(el("label", { class: "consent", style: "margin:4px 0" }, cb, el("span", {}, `${p.app} (${p.slug})`)));
+  }
+  actualizarSuiteBoton();
+}
+const elegidosSuite = () => [...$("suite-lista").querySelectorAll("input:checked")].map((c) => c.value);
+function actualizarSuiteBoton() {
+  const n = elegidosSuite().length;
+  const ok = n >= 2 && n <= 6 && $("suite-nombre").value.trim() && $("suite-acepto").checked && estado?.opencode?.instalado && !enCurso;
+  $("suite-ir").disabled = !ok;
+  $("suite-ayuda").textContent = ok || enCurso ? "" : "Falta: " + [n < 2 ? "elige al menos 2 MCP" : "", !$("suite-nombre").value.trim() ? "un nombre" : "", !$("suite-acepto").checked ? "aceptar el aviso" : ""].filter(Boolean).join(", ");
+}
+$("suite-nombre").addEventListener("input", actualizarSuiteBoton);
+$("suite-acepto").addEventListener("change", actualizarSuiteBoton);
+$("suite-ir").addEventListener("click", async () => {
+  $("suite-ir").disabled = true;
+  try {
+    const r = await lanzarTrabajo("/api/suite", {
+      nombre: $("suite-nombre").value, miembros: elegidosSuite(), objetivo: $("suite-objetivo").value, modelo: $("modelo").value,
+    }, "Ya existe una suite con ese nombre.\n\n¿Quieres SOBRESCRIBIRLA? Se rehace la carpeta de la suite (tus MCP no se tocan).");
+    mostrarProgreso(r, r.slug);
+  } catch (e) { alert(e.message); actualizarSuiteBoton(); }
+});
 
 $("salir").addEventListener("click", async () => {
   if (!confirm("¿Cerrar el constructor? Si hay una construcción en curso se detendrá.")) return;

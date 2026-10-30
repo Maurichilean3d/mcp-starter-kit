@@ -1,3 +1,5 @@
+> **Rama `pro` (en pruebas):** investigación de herramientas líderes, mejorar MCP existentes y suites que combinan varios MCP. Mira [docs/08-edicion-pro.md](docs/08-edicion-pro.md). La rama `main` es la versión estable.
+
 # MCP Starter Kit
 
 Plantilla para construir tu propio **servidor MCP** (Model Context Protocol) en TypeScript y conectarlo a **opencode** (o Claude Desktop, Cursor, etc.).

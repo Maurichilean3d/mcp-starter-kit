@@ -20,7 +20,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { listarApps } from "./apps.mjs";
 import { carpetaSalida, nombrePlataforma, slugify, proyectoExiste } from "./proyecto.mjs";
-import { activarMcp, detectarOpencode, ejecutarTrabajo, marcarActivado, Trabajo } from "./trabajo.mjs";
+import { activarMcp, detectarOpencode, ejecutarTrabajo, ejecutarMejora, ejecutarSuite, marcarActivado, Trabajo } from "./trabajo.mjs";
 import { ampliarPath } from "../scripts/asegurar-clis.mjs";
 
 // Un cmd/Terminal nuevo a veces no ve donde se instala opencode (p. ej. %APPDATA%\npm): lo anadimos al PATH.
@@ -110,7 +110,7 @@ async function proyectosCreados() {
   for (const n of nombres) {
     try {
       const datos = JSON.parse(await readFile(path.join(base, n, ".mcp-constructor.json"), "utf8"));
-      lista.push({ slug: n, app: datos.app, creado: datos.creado, activado: !!datos.activado, carpeta: path.join(base, n) });
+      lista.push({ slug: n, app: datos.app, creado: datos.creado, activado: !!datos.activado, carpeta: path.join(base, n), tipo: datos.tipo === "suite" ? "suite" : "mcp", miembros: datos.miembros?.map((m) => m.slug) });
     } catch {
       /* no es un proyecto del constructor */
     }
@@ -137,7 +137,22 @@ function validarEntrada(cuerpo) {
     return { error: "El modelo debe tener el formato proveedor/modelo (por ejemplo anthropic/claude-sonnet-4)." };
   }
 
-  return { app, rutaApp, objetivo, slug, modelo, sobrescribir: cuerpo.sobrescribir === true };
+  return { app, rutaApp, objetivo, slug, modelo, sobrescribir: cuerpo.sobrescribir === true, investigar: cuerpo.investigar === true };
+}
+
+function validarModelo(valor) {
+  const modelo = valor ? String(valor).trim() : "";
+  if (modelo && !/^[A-Za-z0-9._-]+\/[A-Za-z0-9._:@/-]+$/.test(modelo)) return { error: "El modelo debe tener el formato proveedor/modelo (por ejemplo anthropic/claude-sonnet-4)." };
+  return { modelo };
+}
+
+function iniciarTrabajo(res, ejecutar, entrada, extra = {}) {
+  const id = randomBytes(6).toString("hex");
+  const trabajo = new Trabajo(id);
+  trabajos.set(id, trabajo);
+  trabajoActivo = trabajo;
+  void ejecutar(trabajo, entrada);
+  return responderJson(res, 202, { id, ...extra });
 }
 
 // ---------- rutas ----------
@@ -177,6 +192,35 @@ async function manejarApi(req, res, url) {
     trabajoActivo = trabajo;
     void ejecutarTrabajo(trabajo, entrada);
     return responderJson(res, 202, { id, slug: entrada.slug });
+  }
+
+  if (req.method === "POST" && ruta === "/api/mejorar") {
+    if (trabajoActivo && !trabajoActivo.terminado) return responderJson(res, 409, { error: "Ya hay un trabajo en curso." });
+    const c = await leerJson(req);
+    const slug = String(c.slug ?? "");
+    if (!/^[a-z0-9-]{1,40}$/.test(slug)) return responderJson(res, 400, { error: "Nombre de proyecto invalido." });
+    const pedido = c.pedido ? String(c.pedido).trim() : "";
+    if (pedido.length > 2000 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(pedido)) return responderJson(res, 400, { error: "La peticion es demasiado larga (maximo 2000 caracteres)." });
+    const m = validarModelo(c.modelo);
+    if (m.error) return responderJson(res, 400, { error: m.error });
+    if (!(await proyectoExiste(slug))) return responderJson(res, 404, { error: "Proyecto no encontrado." });
+    return iniciarTrabajo(res, ejecutarMejora, { slug, pedido, modelo: m.modelo, investigar: c.investigar === true }, { slug });
+  }
+
+  if (req.method === "POST" && ruta === "/api/suite") {
+    if (trabajoActivo && !trabajoActivo.terminado) return responderJson(res, 409, { error: "Ya hay un trabajo en curso." });
+    const c = await leerJson(req);
+    const nombre = String(c.nombre ?? "").trim();
+    if (!nombre || nombre.length > 60 || !sinControl(nombre)) return responderJson(res, 400, { error: "Ponle un nombre a la suite (maximo 60 caracteres)." });
+    const slug = ("suite-" + slugify(nombre).replace(/^suite-/, "")).slice(0, 40).replace(/-+$/, "");
+    const miembros = Array.isArray(c.miembros) ? c.miembros.map(String) : [];
+    if (miembros.length < 2 || miembros.length > 6 || miembros.some((x) => !/^[a-z0-9-]{1,40}$/.test(x))) return responderJson(res, 400, { error: "Elige entre 2 y 6 MCP." });
+    const objetivo = c.objetivo ? String(c.objetivo).trim() : "";
+    if (objetivo.length > 2000 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(objetivo)) return responderJson(res, 400, { error: "La descripcion es demasiado larga (maximo 2000 caracteres)." });
+    const m = validarModelo(c.modelo);
+    if (m.error) return responderJson(res, 400, { error: m.error });
+    if (c.sobrescribir !== true && (await proyectoExiste(slug))) return responderJson(res, 409, { existe: true, slug, error: `Ya existe una suite llamada "${slug}".` });
+    return iniciarTrabajo(res, ejecutarSuite, { nombre, slug, miembros, objetivo, modelo: m.modelo, sobrescribir: c.sobrescribir === true }, { slug });
   }
 
   const m = ruta.match(/^\/api\/trabajos\/([a-f0-9]{12})\/(eventos|cancelar)$/);
