@@ -27,3 +27,21 @@ Los MCP originales no se modifican. Si mejoras un MCP, vuelve a abrir la suite p
 Windows (PowerShell): `irm https://raw.githubusercontent.com/Maurichilean3d/mcp-starter-kit/pro/install.ps1 | iex`
 Mac/Linux: `curl -fsSL https://raw.githubusercontent.com/Maurichilean3d/mcp-starter-kit/pro/install.sh | bash`
 Se instala en `mcp-starter-kit-pro` (no pisa la versión estable) y comparte la carpeta `mcp-creados`.
+
+---
+
+# Rama `pro-vision`: control visual
+
+Añade una cuarta capacidad: el MCP puede **ver la ventana de la app y usar mouse/teclado** cuando la API de la app no alcanza (y recrear algo comparando con una imagen de referencia).
+
+**Cómo activarlo:** casilla "Permitir control visual" al crear un MCP, o al **Mejorar…** uno existente. Se copia `src/lib/visual/` y `src/tools/visual.ts` dentro del MCP (más `VISUAL.md`, `referencias/` y `capturas/`) y opencode recibe una *Fase V* para construir herramientas de alto nivel sobre las primitivas.
+
+**Herramientas:** `visual_estado`, `visual_capturar`, `visual_clic`, `visual_arrastrar`, `visual_scroll`, `visual_escribir`, `visual_tecla`, `visual_esperar`, `visual_comparar`.
+
+**Bucle recomendado:** capturar → decidir → UNA acción (devuelve captura nueva) → verificar. Para recrear: construir → capturar → `visual_comparar` con el PNG de `referencias/` (similitud, % de puntos cambiados, zonas más distintas, colores por zona) → corregir → repetir.
+
+**Seguridad:** solo actúa dentro de la última captura (la ventana de la app); capturar toda la pantalla exige `VISUAL_PERMITIR_PANTALLA=1`; rechaza acciones si la ventana se movió; freno de emergencia creando `PARAR.txt` en la carpeta del MCP; máximo de acciones por sesión (`VISUAL_MAX_ACCIONES`, 400); combinaciones bloqueadas (Alt+F4, teclas Windows, Cmd+Q, cambiar de app). Las capturas se envían al modelo y se guardan (las 20 últimas) en `capturas/`: no dejes datos sensibles a la vista.
+
+**Requisitos:** Windows: nada extra. macOS: permisos *Accesibilidad* y *Grabación de pantalla* a la app desde la que ejecutas opencode. Linux: X11 con `xdotool` y `scrot` o ImageMagick.
+
+**Estado de las pruebas:** Linux/X11 probado de verdad (captura, clic, escritura, comparación sobre una ventana real); el resto con un backend simulado (`VISUAL_BACKEND=simulado`). Windows y macOS **sin probar** en equipos reales.

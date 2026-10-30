@@ -1,6 +1,6 @@
 {
   "name": "mcp-starter-kit",
-  "version": "2.0.0-pro.1",
+  "version": "2.1.0-vision.1",
   "description": "Plantilla base para construir servidores MCP (Model Context Protocol) y usarlos con opencode, Claude Desktop, Cursor y otros clientes.",
   "type": "module",
   "main": "dist/index.js",

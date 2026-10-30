@@ -21,7 +21,7 @@ const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const salida = path.join(raiz, "dist-instaladores");
 
 // 1) payload: el kit completo como JSON (base64) para incrustarlo en el ejecutable
-const INCLUIR = ["package.json", "package-lock.json", "tsconfig.json", ".gitignore", ".env.example", "AGENTS.md", "README.md", "opencode.json", "src", "scripts", "constructor", "templates", "docs"];
+const INCLUIR = ["package.json", "package-lock.json", "tsconfig.json", ".gitignore", ".env.example", "AGENTS.md", "README.md", "opencode.json", "src", "scripts", "constructor", "templates", "plantillas", "docs"];
 const archivos = {};
 function agregar(rel) {
   const abs = path.join(raiz, rel);

@@ -3,7 +3,7 @@
  */
 
 /** Fase de investigacion (opcional). Se inserta antes de la Fase 1 del prompt de construccion. */
-export function bloqueInvestigacion({ app }) {
+export function bloqueInvestigacion({ app, visual = false }) {
   return `# Fase 0 - Investigar a los referentes del mercado (OBLIGATORIA en este proyecto, antes de la Fase 1)
 
 El objetivo es que este MCP no se limite a "lo basico" de **${app}**, sino que alcance el nivel de las integraciones de las herramientas de frontera (Claude, ChatGPT, Gemini y otros agentes) que ya controlan software. Usa tus herramientas de busqueda y de lectura web.
@@ -14,7 +14,7 @@ El objetivo es que este MCP no se limite a "lo basico" de **${app}**, sino que a
 3. **Directorios**: Smithery, Glama, PulseMCP, mcp.so.
 4. **Hugging Face**: Spaces o modelos que sirvan como MCP o herramientas para esta categoria (por ejemplo generacion/edicion de imagenes, OCR, voz) y que se puedan usar localmente o por API.
 5. **Documentacion oficial del fabricante de ${app}**: API, SDK, scripting (COM, AppleScript/JXA, plugins, CLI, formatos de archivo abiertos).
-6. **Referentes de calidad**: como Claude (Agent Skills de documentos en \`github.com/anthropics/skills\`, conectores y su "computer use"), ChatGPT (conectores/apps) y Gemini logran resultados profesionales con este tipo de software: que herramientas exponen, que flujos usan.
+${visual ? "6b. **Agentes que controlan interfaces con vision** (proyectos de codigo abierto de GUI agents / computer use, como UI-TARS, OmniParser, Agent S y similares): como localizan elementos (capturas, arbol de accesibilidad, marcas numeradas sobre la imagen), como verifican cada paso y como se recuperan de errores. Comprueba licencia y actividad reciente antes de apoyarte en sus ideas.\n" : ""}6. **Referentes de calidad**: como Claude (Agent Skills de documentos en \`github.com/anthropics/skills\`, conectores y su "computer use"), ChatGPT (conectores/apps) y Gemini logran resultados profesionales con este tipo de software: que herramientas exponen, que flujos usan.
 
 **Que extraer** (no copies codigo; usalo como referencia de diseno y respeta licencias):
 - Catalogo de capacidades de los referentes, agrupadas (crear, editar, inspeccionar, componer, exportar, verificar).
@@ -28,7 +28,24 @@ El objetivo es que este MCP no se limite a "lo basico" de **${app}**, sino que a
 `;
 }
 
-export function construirPromptMejora({ app, slug, pedido, investigar }) {
+
+/** Fase del prompt para que opencode aproveche el control visual (se inserta en PROMPT.md / MEJORA.md). */
+export function bloqueVisual({ app }) {
+  return `# Fase V - Control visual (esta app lo tiene habilitado)
+
+El proyecto ya incluye un modulo de **control visual** (\`src/lib/visual/\`, \`src/tools/visual.ts\`, \`VISUAL.md\`): ver la ventana de **${app}** y usar mouse y teclado como una persona. NO lo reescribas ni debilites sus controles de seguridad.
+
+Que debes hacer:
+1. Lee \`VISUAL.md\` y \`src/lib/visual/nucleo.ts\`.
+2. **Decide por capacidad** (en \`RESEARCH.md\` o \`README.md\`): que se puede hacer con la API/CLI/archivos de ${app} y que SOLO se puede hacer con la interfaz grafica. Implementa primero lo que tenga via directa.
+3. Para lo que quede, crea herramientas de **alto nivel** en \`src/tools/<app>-visual.ts\` basadas en las primitivas (por ejemplo "insertar forma", "aplicar filtro X", "exportar como..."). Cada una: parametros validados con zod, secuencia determinista (capturar -> actuar -> verificar), y una captura de verificacion al final. Describe en la \`description\` cuando conviene usarla frente a la via por API.
+4. Para tareas del tipo "recrear a partir de una imagen de referencia": documenta en el README un procedimiento de bucle (construir -> \`visual_capturar\` -> \`visual_comparar\` -> corregir la zona mas distinta -> repetir hasta similitud alta o un maximo de intentos) y, si ayuda, una herramienta que lo encapsule con tope de iteraciones.
+5. Las pruebas (\`npm test\`) deben pasar SIN pantalla: para probar tus herramientas visuales usa \`VISUAL_BACKEND=simulado\`. No inventes que probaste la app real si no pudiste: dilo en el README.
+
+`;
+}
+
+export function construirPromptMejora({ app, slug, pedido, investigar, visual = false }) {
   const meta = (pedido ?? "").trim().slice(0, 2000);
   return `# Mision: MEJORAR un MCP existente
 
@@ -44,7 +61,7 @@ Este proyecto ya contiene un servidor MCP (\`${slug}\`) para la aplicacion **${a
 4. Se hizo una copia de seguridad en \`.respaldo/\` (no la modifiques).
 5. Si necesitas probar la app real y no puedes, dilo en el README en vez de inventar resultados.
 
-${investigar ? bloqueInvestigacion({ app }).replace("OBLIGATORIA en este proyecto, antes de la Fase 1", "antes de decidir que anadir") : ""}# Pasos
+${visual ? bloqueVisual({ app }) : ""}${investigar ? bloqueInvestigacion({ app, visual }).replace("OBLIGATORIA en este proyecto, antes de la Fase 1", "antes de decidir que anadir") : ""}# Pasos
 
 ${investigar ? "0. Haz la investigacion de referentes de arriba y escribe/actualiza \`RESEARCH.md\`.\n" : ""}1. Haz un inventario: que herramientas existen, que hacen, que les falta (entradas poco validadas, falta de herramientas de lectura/inspeccion, nada para verificar el resultado visualmente, operaciones solo de bajo nivel...).
 2. Propon (en tu cabeza, y resumido en \`CHANGELOG.md\`) la lista de cambios, priorizada.

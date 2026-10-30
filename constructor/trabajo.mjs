@@ -270,14 +270,14 @@ function fallar(trabajo, pasoId, mensaje) {
   trabajo.emitir({ tipo: "fin", ok: false, mensaje });
 }
 
-export async function ejecutarTrabajo(trabajo, { app, rutaApp, objetivo, slug, modelo, sobrescribir, investigar }) {
+export async function ejecutarTrabajo(trabajo, { app, rutaApp, objetivo, slug, modelo, sobrescribir, investigar, visual }) {
   trabajo.emitir({ tipo: "pasos", pasos: PASOS });
   let carpeta;
   try {
     // 1. preparar
     trabajo.paso("preparar", "en_curso");
     let lanzador;
-    ({ carpeta, lanzador } = await crearProyecto({ app, rutaApp, objetivo, slug, sobrescribir, investigar }));
+    ({ carpeta, lanzador } = await crearProyecto({ app, rutaApp, objetivo, slug, sobrescribir, investigar, visual }));
     trabajo.log(`Proyecto creado en: ${carpeta}\n`);
     trabajo.paso("preparar", "ok", carpeta);
 
@@ -369,12 +369,12 @@ function errorFinal(e, trabajo) {
 }
 
 /** MEJORAR un MCP existente. Si no queda funcionando, se restaura el respaldo. */
-export async function ejecutarMejora(trabajo, { slug, pedido, modelo, investigar }) {
+export async function ejecutarMejora(trabajo, { slug, pedido, modelo, investigar, visual }) {
   trabajo.emitir({ tipo: "pasos", pasos: PASOS_MEJORA });
   let ctx;
   try {
     trabajo.paso("preparar", "en_curso");
-    ctx = await prepararMejora({ slug, pedido, investigar });
+    ctx = await prepararMejora({ slug, pedido, investigar, visual });
     trabajo.log(`Respaldo guardado en: ${ctx.respaldo}\n`);
     const inst = await trabajo.ejecutar("npm", ["install", "--no-audit", "--no-fund"], { cwd: ctx.carpeta, limiteMs: 10 * 60 * 1000 });
     if (trabajo.cancelado) throw new Cancelado();

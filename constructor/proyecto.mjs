@@ -6,7 +6,8 @@ import { chmod, copyFile, mkdir, readFile, writeFile, access, rm } from "node:fs
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { bloqueInvestigacion } from "./prompts-pro.mjs";
+import { bloqueInvestigacion, bloqueVisual } from "./prompts-pro.mjs";
+import { instalarModuloVisual } from "./visual.mjs";
 
 export const RAIZ_KIT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -99,7 +100,7 @@ export async function proyectoExiste(slug) {
  * Si ya existe una carpeta con ese nombre: con `sobrescribir` la borra y empieza de cero
  * (aunque el MCP anterior estuviera roto); sin `sobrescribir` lanza un Error con code "EXISTE".
  */
-export async function crearProyecto({ app, rutaApp, objetivo, slug, sobrescribir = false, investigar = false }) {
+export async function crearProyecto({ app, rutaApp, objetivo, slug, sobrescribir = false, investigar = false, visual = false }) {
   if (!/^[a-z0-9-]{1,40}$/.test(slug)) throw new Error("Nombre de proyecto invalido.");
   const carpeta = carpetaDeProyecto(slug);
   if (await existe(carpeta)) {
@@ -163,7 +164,9 @@ Las herramientas reales van en \`src/tools/${slug}.ts\` (y otros archivos \`src/
 `;
   await writeFile(path.join(carpeta, "AGENTS.md"), reglas + extra, "utf8");
 
-  await writeFile(path.join(carpeta, "PROMPT.md"), construirPrompt({ app, rutaApp, objetivo, slug, investigar }), "utf8");
+  if (visual) await instalarModuloVisual(carpeta, { app });
+
+  await writeFile(path.join(carpeta, "PROMPT.md"), construirPrompt({ app, rutaApp, objetivo, slug, investigar, visual }), "utf8");
 
   await writeFile(
     path.join(carpeta, ".mcp-constructor.json"),
@@ -253,7 +256,7 @@ const PISTAS = {
 - Revisa si expone **D-Bus** (\`gdbus introspect --session --dest ...\`), una API local, o archivos de datos en \`~/.config\` y \`~/.local/share\`.`,
 };
 
-export function construirPrompt({ app, rutaApp, objetivo, slug, investigar = false }) {
+export function construirPrompt({ app, rutaApp, objetivo, slug, investigar = false, visual = false }) {
   const so = nombrePlataforma();
   const meta = (objetivo ?? "").trim().slice(0, 2000);
   return `# Mision
@@ -273,7 +276,7 @@ Construye un servidor **MCP** (Model Context Protocol) en TypeScript que permita
 1. Lee \`AGENTS.md\` y respeta TODAS sus reglas (sin console.log, sin shell con texto del modelo, validar entradas, annotations, etc.).
 2. Mira \`src/tools/_ejemplo.ts\` y \`src/lib/\` para ver el patron. Puedes crear herramientas con \`npm run new-tool -- nombre\`.
 
-${investigar ? bloqueInvestigacion({ app }) : ""}# Fase 1 - Investigar (NO escribas codigo todavia)
+${investigar ? bloqueInvestigacion({ app, visual }) : ""}# Fase 1 - Investigar (NO escribas codigo todavia)
 
 Averigua como se puede controlar **${app}** desde fuera, probando estas vias de la mas robusta a la mas fragil:
 
@@ -309,7 +312,7 @@ Define entre **4 y 8 herramientas** pequenas y utiles (una accion clara cada una
 
 Crea \`README.md\` en espanol: que hace el MCP, tabla de herramientas (nombre, que hace, si modifica datos), 3 ejemplos de frases para pedirselas a la IA, requisitos y permisos del sistema, y limitaciones conocidas. Se honesto: si algo no pudo probarse, dilo.
 
-# Fase 6 - Arranque conjunto (SOLO si la app lo necesita)
+${visual ? bloqueVisual({ app }) : ""}# Fase 6 - Arranque conjunto (SOLO si la app lo necesita)
 
 El proyecto ya trae un lanzador generico (\`Abrir-${slug}.bat\` / \`.command\`) que abre **${app}** y opencode a la vez. Si en la Fase 1 descubriste que la app debe arrancar de forma especial para poder controlarla (un parametro como \`--control\`, \`--port\` o \`--remote-debugging-port\`, un servidor o puente propio, un plugin que hay que activar), NO crees \`.bat\` propios ni dependas de la app de escritorio de opencode. Crea en su lugar \`scripts/preparar-app.mjs\` (solo modulos de Node, funciona en Windows y Mac) con este contrato. Puedes importar \`./lib-arranque.mjs\` (\`esperarPuerto\`, \`puertoAbierto\`, \`appEnEjecucion\`):
 
