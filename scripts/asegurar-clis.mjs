@@ -31,7 +31,7 @@ function carpetasExtra() {
     if (process.env.LOCALAPPDATA) l.push(path.join(process.env.LOCALAPPDATA, "agy", "bin"));
     l.push(path.join(home, ".opencode", "bin"));
   } else {
-    l.push(path.join(home, ".local", "bin"), path.join(home, ".opencode", "bin"), "/opt/homebrew/bin", "/usr/local/bin");
+    l.push(path.join(home, ".mcp-starter-kit", "node", "bin"), path.join(home, ".local", "bin"), path.join(home, ".opencode", "bin"), "/opt/homebrew/bin", "/usr/local/bin");
     const prefijo = process.env.npm_config_prefix;
     if (prefijo) l.push(path.join(prefijo, "bin"));
   }
@@ -69,7 +69,14 @@ const CLIS = {
     comandoManual: "npm install -g opencode-ai    (mas info: https://opencode.ai)",
     requiere: "npm",
     instalar() {
-      return spawnSync("npm", ["install", "-g", "opencode-ai"], { stdio: "inherit", shell: esWin });
+      let r = spawnSync("npm", ["install", "-g", "opencode-ai"], { stdio: "inherit", shell: esWin });
+      if (esWin || buscar("opencode")) return r;
+      // Mac/Linux: con Node instalado por el .pkg, "-g" suele fallar por permisos (EACCES). Probamos en TU carpeta de usuario.
+      console.log("\nLa instalacion global fallo (normalmente por permisos). Pruebo instalar en tu carpeta de usuario (~/.local), sin administrador...");
+      r = spawnSync("npm", ["install", "-g", "--prefix", path.join(home, ".local"), "opencode-ai"], { stdio: "inherit" });
+      if (buscar("opencode")) return r;
+      console.log("\nPruebo el instalador oficial de opencode (elige solo la version para Intel o Apple Silicon)...");
+      return spawnSync("bash", ["-c", "curl -fsSL https://opencode.ai/install | bash"], { stdio: "inherit" });
     },
   },
   agy: {

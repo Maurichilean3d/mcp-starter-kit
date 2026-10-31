@@ -214,7 +214,7 @@ cd "$(dirname "$0")" || exit 1
 [ -x /usr/local/bin/brew ] && eval "$(/usr/local/bin/brew shellenv)"
 export NVM_DIR="\${NVM_DIR:-$HOME/.nvm}"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" >/dev/null 2>&1
-export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
+export PATH="$HOME/.mcp-starter-kit/node/bin:$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
 pausa() { echo; read -n 1 -s -r -p "Presiona una tecla para cerrar..."; echo; }
 . scripts/asegurar-node.sh
 asegurar_node || { pausa; exit 1; }
@@ -238,6 +238,7 @@ pause
 cd "$(dirname "$0")" || exit 1
 [ -x /opt/homebrew/bin/brew ] && eval "$(/opt/homebrew/bin/brew shellenv)"
 [ -x /usr/local/bin/brew ] && eval "$(/usr/local/bin/brew shellenv)"
+export PATH="$HOME/.mcp-starter-kit/node/bin:$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
 node scripts/cerrar-mcp.mjs
 read -n 1 -s -r -p "Presiona una tecla para cerrar..."; echo
 `;

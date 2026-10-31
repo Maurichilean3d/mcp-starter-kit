@@ -98,7 +98,7 @@ function carpetasNode() {
     l.push(path.join(process.env.ProgramFiles ?? "C:\\Program Files", "nodejs"));
     if (process.env.LOCALAPPDATA) l.push(path.join(process.env.LOCALAPPDATA, "Programs", "nodejs"));
   } else {
-    l.push("/opt/homebrew/bin", "/usr/local/bin");
+    l.push(path.join(os.homedir(), ".mcp-starter-kit", "node", "bin"), "/opt/homebrew/bin", "/usr/local/bin");
     const nvm = path.join(os.homedir(), ".nvm", "versions", "node");
     if (existsSync(nvm)) for (const v of readdirSync(nvm).sort().reverse()) l.push(path.join(nvm, v, "bin"));
   }
@@ -142,13 +142,18 @@ async function asegurarNode() {
       spawnSync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", path.join(DESTINO, "scripts", "instalar-node.ps1")], { stdio: "inherit" });
     }
   } else if (esMac) {
-    if (spawnSync("sh", ["-c", "command -v brew"], { stdio: "ignore" }).status === 0) {
-      console.log("\nInstalando Node.js con Homebrew...");
-      spawnSync("sh", ["-c", "brew install node"], { stdio: "inherit" });
-    } else {
-      console.log("\nDescargando el instalador oficial de Node.js...");
-      const sh = `B=https://nodejs.org/dist/latest-v22.x/; P=$(curl -fsSL "$B"SHASUMS256.txt | grep -o 'node-v[0-9.]*\\.pkg' | head -n1); [ -n "$P" ] && curl -fSL "$B$P" -o "/tmp/$P" && echo "Se abrira el instalador de Node.js: sigue los pasos y cierralo al terminar." && open -W "/tmp/$P"; rm -f "/tmp/$P"`;
-      spawnSync("sh", ["-c", sh], { stdio: "inherit" });
+    // Igual que Iniciar.command: primero Node portable (sin administrador); luego Homebrew; luego el .pkg.
+    console.log("\nDescargando Node.js portable (sin administrador)...");
+    spawnSync("bash", ["-c", `. "${path.join(DESTINO, "scripts", "asegurar-node.sh")}"; _node_portable`], { stdio: "inherit" });
+    if (!(nodePath = buscarNode())) {
+      if (spawnSync("sh", ["-c", "command -v brew"], { stdio: "ignore" }).status === 0) {
+        console.log("\nInstalando Node.js con Homebrew...");
+        spawnSync("sh", ["-c", "brew install node"], { stdio: "inherit" });
+      } else {
+        console.log("\nDescargando el instalador oficial de Node.js...");
+        const sh = `B=https://nodejs.org/dist/latest-v22.x/; P=$(curl -fsSL "$B"SHASUMS256.txt | grep -o 'node-v[0-9.]*\\.pkg' | head -n1); [ -n "$P" ] && curl -fSL "$B$P" -o "/tmp/$P" && echo "Se abrira el instalador de Node.js: sigue los pasos y cierralo al terminar." && open -W "/tmp/$P"; rm -f "/tmp/$P"`;
+        spawnSync("sh", ["-c", sh], { stdio: "inherit" });
+      }
     }
   } else {
     console.log("Instala Node.js con el gestor de paquetes de tu sistema o desde https://nodejs.org y vuelve a abrir este programa.");
@@ -179,7 +184,7 @@ function prepararEntorno(nodePath) {
     if (process.env.APPDATA) extra.push(path.join(process.env.APPDATA, "npm"));
     if (process.env.LOCALAPPDATA) extra.push(path.join(process.env.LOCALAPPDATA, "agy", "bin"));
   } else {
-    extra.push(path.join(os.homedir(), ".local", "bin"), path.join(os.homedir(), ".opencode", "bin"));
+    extra.push(path.join(os.homedir(), ".mcp-starter-kit", "node", "bin"), path.join(os.homedir(), ".local", "bin"), path.join(os.homedir(), ".opencode", "bin"));
   }
   ENTORNO = { ...process.env, PATH: [...extra, process.env.PATH ?? ""].join(sepPath) };
   Object.assign(process.env, { PATH: ENTORNO.PATH }); // los hijos que lanzamos tambien lo heredan
