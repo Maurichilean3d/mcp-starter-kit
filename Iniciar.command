@@ -9,7 +9,7 @@ cd "$(dirname "$0")" || exit 1
 [ -x /usr/local/bin/brew ] && eval "$(/usr/local/bin/brew shellenv)"
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" >/dev/null 2>&1
-export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
+export PATH="$HOME/.mcp-starter-kit/node/bin:$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
 
 pausa() { echo; read -n 1 -s -r -p "Presiona una tecla para cerrar..."; echo; }
 
@@ -22,4 +22,5 @@ fi
 . scripts/asegurar-node.sh
 asegurar_node || { pausa; exit 1; }
 
+echo "Mac detectado: $([ "$(sysctl -in hw.optional.arm64 2>/dev/null)" = "1" ] && echo "Apple Silicon (M1/M2/M3...)" || echo "Intel")"
 node instalador/setup.mjs

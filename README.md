@@ -55,6 +55,8 @@ La primera vez tarda un par de minutos; después abre al instante.
 
 ¿Prefieres git? `git clone https://github.com/Maurichilean3d/mcp-starter-kit.git` y luego el mismo archivo de entrada (con git tampoco aparecen alertas).
 
+**Mac Intel vs Apple Silicon:** es el mismo archivo `Iniciar.command` para los dos; detecta solo si tu Mac es Intel o Apple Silicon (M1/M2/M3…) y descarga la versión de Node.js que corresponde, **sin pedir contraseña de administrador** (queda en `~/.mcp-starter-kit/node`). opencode se instala con `npm`; si falla por permisos se instala en tu carpeta de usuario (`~/.local`), y como último recurso con el instalador oficial. Cada MCP que crees trae su doble clic **`Abrir-<nombre>.command`** (Mac) / **`Abrir-<nombre>.bat`** (Windows), que abre la app y opencode con el MCP a la vez, y **`Cerrar-<nombre>`** para cerrarlos.
+
 Más detalle y solución de problemas: [docs/00-instalacion-windows-mac.md](docs/00-instalacion-windows-mac.md) y [docs/06-depuracion.md](docs/06-depuracion.md). El constructor automático (con sus **advertencias de seguridad**): [docs/07-constructor-automatico.md](docs/07-constructor-automatico.md).
 
 ## Inicio rápido con la terminal (cualquier sistema)
