@@ -49,6 +49,7 @@ El programa te va preguntando `[S/N]` antes de instalar lo que falte (**Node.js*
 1. Crear un MCP para una app de tu equipo (Constructor automático)
 2. Abrir opencode con el MCP del kit
 3. Abrir Antigravity con el MCP del kit
+4. Conectar o cambiar la IA (NVIDIA / OpenRouter / ninguna) — ver [guía 9](docs/09-instalar-ia-nvidia-openrouter-agy.md)
 4. Diagnóstico (si algo falla: crea `diagnostico.txt` para enviarlo a quien te ayuda)
 
 La primera vez tarda un par de minutos; después abre al instante.
@@ -132,6 +133,7 @@ Abre `templates/PROMPT_PARA_OPENCODE.md`, elige la app de tu computador, complet
 5. [Seguridad y buenas prácticas](docs/05-seguridad.md)
 6. [Depuración y problemas comunes](docs/06-depuracion.md)
 7. [Constructor automático: opencode escribe el MCP por ti](docs/07-constructor-automatico.md)
+9. [Instalar opencode, conectar NVIDIA/OpenRouter y usar agy](docs/09-instalar-ia-nvidia-openrouter-agy.md)
 
 ## Comandos
 
