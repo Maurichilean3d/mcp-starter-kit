@@ -107,17 +107,20 @@ async function instalarOpencode() {
 
   decir("\n[2/3] Comprobando compatibilidad del equipo...");
   const avx2 = await macIntelTieneAvx2();
-  if (avx2 === false && !FORZAR) {
-    decir("   Este Mac Intel NO tiene AVX2. El opencode actual se cierra al abrirse en estos procesadores");
-    decir("   (problema conocido: https://github.com/anomalyco/opencode/issues/24876).");
-    decir("   Salto la instalacion de opencode. Puedes forzarla con --forzar.");
-    return { ok: false, sinAvx2: true };
+  let sinAvx2 = false;
+  if (avx2 === false) {
+    sinAvx2 = true;
+    decir("   Este Mac Intel NO tiene AVX2. El paquete de npm trae una version 'baseline' pensada para estos equipos,");
+    decir("   asi que pruebo primero con npm. Si despues no abre, usaremos agy (problema conocido: https://github.com/anomalyco/opencode/issues/24876).");
+  } else {
+    decir(avx2 === true ? "   Mac Intel con AVX2: compatible." : "   Sin problemas de compatibilidad detectados.");
   }
-  decir(avx2 === true ? "   Mac Intel con AVX2: compatible." : "   Sin problemas de compatibilidad detectados.");
 
   decir("\n[3/3] Instalando opencode (esto puede tardar unos minutos)...");
   const intentos = [];
-  for (const m of metodos()) {
+  const orden = metodos();
+  if (sinAvx2) orden.sort((a, b) => Number(b.id.startsWith("npm")) - Number(a.id.startsWith("npm"))); // npm elige el binario baseline
+  for (const m of orden) {
     if (!(await m.disponible())) {
       decir(`   - ${m.id}: no disponible en este equipo, lo salto.`);
       intentos.push(`${m.id}: no disponible`);
