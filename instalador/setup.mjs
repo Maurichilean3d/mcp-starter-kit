@@ -183,8 +183,9 @@ function prepararEntorno(nodePath) {
   if (esWin) {
     if (process.env.APPDATA) extra.push(path.join(process.env.APPDATA, "npm"));
     if (process.env.LOCALAPPDATA) extra.push(path.join(process.env.LOCALAPPDATA, "agy", "bin"));
+    extra.push(path.join(os.homedir(), ".opencode", "bin"), path.join(os.homedir(), ".opencode-npm"), path.join(os.homedir(), ".opencode-npm", "bin"));
   } else {
-    extra.push(path.join(os.homedir(), ".mcp-starter-kit", "node", "bin"), path.join(os.homedir(), ".local", "bin"), path.join(os.homedir(), ".opencode", "bin"));
+    extra.push(path.join(os.homedir(), ".mcp-starter-kit", "node", "bin"), path.join(os.homedir(), ".local", "bin"), path.join(os.homedir(), ".opencode", "bin"), path.join(os.homedir(), ".opencode-npm", "bin"));
   }
   ENTORNO = { ...process.env, PATH: [...extra, process.env.PATH ?? ""].join(sepPath) };
   Object.assign(process.env, { PATH: ENTORNO.PATH }); // los hijos que lanzamos tambien lo heredan
@@ -205,6 +206,22 @@ function yaPreparado() {
   return statSync(salida).mtimeMs >= masReciente(path.join(DESTINO, "src"));
 }
 
+// ---------- IA: opencode + proveedor (NVIDIA / OpenRouter) ----------
+/** Asegura opencode y lanza el asistente de clave. Nunca es fatal. Sin terminal (modo --si) no pregunta nada. */
+function conectarIa(nodePath) {
+  const op = correr(nodePath, [path.join("scripts", "asegurar-clis.mjs"), "--solo=opencode", ...(AUTO ? ["--si"] : [])]);
+  if (op.status !== 0) {
+    console.log("\nopencode no esta disponible, asi que todavia no se puede conectar una IA. Detalle: ~/mcp-creados/instalacion.log");
+    console.log("Alternativa: Antigravity (agy), opcion 3 del menu.");
+    return;
+  }
+  if (!process.stdin.isTTY || AUTO) {
+    console.log("\nopencode listo. Para conectar NVIDIA u OpenRouter ejecuta mas tarde: npm run configurar-ia");
+    return;
+  }
+  correr(nodePath, [path.join("scripts", "configurar-ia.mjs")]);
+}
+
 // ---------- menu ----------
 async function menu(nodePath) {
   for (;;) {
@@ -212,9 +229,10 @@ async function menu(nodePath) {
     console.log("  1. Crear un MCP para una app de mi equipo (Constructor)");
     console.log("  2. Abrir opencode con el MCP del kit");
     console.log("  3. Abrir Antigravity con el MCP del kit");
-    console.log("  4. Diagnostico (si algo falla: genera diagnostico.txt para enviar)");
-    console.log("  5. Salir");
-    const r = await preguntar("\nElige una opcion [1-5]: ");
+    console.log("  4. Conectar o cambiar la IA (NVIDIA / OpenRouter / ninguna)");
+    console.log("  5. Diagnostico (si algo falla: genera diagnostico.txt para enviar)");
+    console.log("  6. Salir");
+    const r = await preguntar("\nElige una opcion [1-6]: ");
     if (r === "1") {
       // El constructor necesita opencode: si falta, pide permiso para instalarlo antes de abrir la pagina.
       const ok = correr(nodePath, [path.join("scripts", "asegurar-clis.mjs"), "--solo=opencode", ...(AUTO ? ["--si"] : [])]).status === 0;
@@ -229,8 +247,10 @@ async function menu(nodePath) {
     } else if (r === "3") {
       correr(nodePath, [path.join("scripts", "lanzar.mjs"), "agy"]);
     } else if (r === "4") {
+      conectarIa(nodePath);
+    } else if (r === "5") {
       correr(nodePath, [path.join("scripts", "diagnostico.mjs")]);
-    } else if (r === "5" || !process.stdin.isTTY) {
+    } else if (r === "6" || !process.stdin.isTTY) {
       return;
     }
   }
@@ -268,8 +288,11 @@ if (yaPreparado()) {
   await hacer(3, "Instalando dependencias del MCP (puede tardar un minuto)", npm, ["install"]);
   await hacer(4, "Compilando y probando el servidor", npm, ["test"]);
 
-  paso(5, TOTAL, "Comprobando opencode y Antigravity (si falta alguno, te pide permiso para instalarlo)");
-  correr(nodePath, [path.join("scripts", "asegurar-clis.mjs"), ...(AUTO ? ["--si"] : [])]); // no es fatal si dices que no
+  paso(5, TOTAL, "Instalando opencode y conectando una IA (si falta algo, te pide permiso; ningun fallo aqui detiene la instalacion)");
+  const opencodeOk = correr(nodePath, [path.join("scripts", "asegurar-clis.mjs"), "--solo=opencode", ...(AUTO ? ["--si"] : [])]).status === 0;
+  if (opencodeOk && process.stdin.isTTY && !AUTO) correr(nodePath, [path.join("scripts", "configurar-ia.mjs")]); // elegir NVIDIA / OpenRouter / ninguna
+  else if (!opencodeOk) console.log("\nopencode no quedo disponible. Si tu Mac es Intel antiguo o la instalacion fallo, usa Antigravity (agy).");
+  correr(nodePath, [path.join("scripts", "asegurar-clis.mjs"), "--solo=agy", ...(AUTO ? ["--si"] : [])]); // agy: respaldo si opencode no se puede usar
 
   await hacer(6, "Registrando el MCP en opencode", nodePath, [path.join("scripts", "configurar-opencode.mjs")]);
 }

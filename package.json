@@ -20,6 +20,8 @@
     "configurar": "node scripts/configurar-opencode.mjs",
     "configurar:global": "node scripts/configurar-opencode.mjs --global",
     "test": "npm run build && node scripts/smoke-test.mjs",
+    "configurar-ia": "node scripts/configurar-ia.mjs",
+    "instalar-ia": "node scripts/instalar-opencode.mjs && node scripts/configurar-ia.mjs",
     "setup": "node instalador/setup.mjs",
     "construir-instaladores": "node instalador/construir.mjs",
     "diagnostico": "node scripts/diagnostico.mjs"

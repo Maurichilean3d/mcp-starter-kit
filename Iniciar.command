@@ -9,7 +9,7 @@ cd "$(dirname "$0")" || exit 1
 [ -x /usr/local/bin/brew ] && eval "$(/usr/local/bin/brew shellenv)"
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" >/dev/null 2>&1
-export PATH="$HOME/.mcp-starter-kit/node/bin:$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
+export PATH="$HOME/.mcp-starter-kit/node/bin:$HOME/.local/bin:$HOME/.opencode/bin:$HOME/.opencode-npm/bin:$PATH"
 
 pausa() { echo; read -n 1 -s -r -p "Presiona una tecla para cerrar..."; echo; }
 

@@ -12,6 +12,10 @@ import { crearProyecto } from "./proyecto.mjs";
 import { prepararMejora, restaurar } from "./mejora.mjs";
 import { crearSuite } from "./suite.mjs";
 import { quitarRea } from "./rea.mjs";
+import { diagnosticarOpencode, leerJson, prepararPath, rutaConfigOpencode } from "../scripts/lib-ia.mjs";
+
+// opencode puede estar en carpetas que una ventana abierta con doble clic no tiene en el PATH.
+prepararPath();
 import { MENSAJE_FLUJOS, MENSAJE_MEJORAR } from "./prompts-pro.mjs";
 
 export const PASOS = [
@@ -206,6 +210,12 @@ function capturar(cmd, args, ms = 30_000) {
  */
 export async function elegirModelos(trabajo, modelo) {
   if (modelo) return [modelo];
+  // Si el asistente de IA dejo un modelo propio (NVIDIA / OpenRouter) en la configuracion global, se respeta: no se usa Big Pickle.
+  const propio = leerJson(rutaConfigOpencode()).datos?.model;
+  if (typeof propio === "string" && propio.includes("/") && !propio.startsWith("opencode/")) {
+    trabajo.log(`[Uso tu modelo configurado: ${propio}]\n`);
+    return [undefined];
+  }
   const auth = await capturar("opencode", ["auth", "list"]);
   const n = /(\d+)\s+credentials?/i.exec(auth);
   const tieneProveedor = (n && Number(n[1]) > 0) || /Environment[\s\S]*\u2022/.test(auth);
@@ -301,9 +311,9 @@ export async function ejecutarTrabajo(trabajo, { app, rutaApp, objetivo, slug, m
       return fallar(
         trabajo,
         "generar",
-        "opencode termino con error. " +
-          (resumenError(gen.salida) ? `Esto es lo que dijo:\n${resumenError(gen.salida)}\n\n` : "") +
-          "Lo mas comun: no hay un modelo/proveedor conectado (abre opencode una vez y conectalo con /connect), el modelo indicado no existe, o no hay internet.",
+        diagnosticarOpencode(gen.salida, gen.code) +
+          (resumenError(gen.salida) ? `\n\nEsto es lo que dijo:\n${resumenError(gen.salida)}` : "") +
+          "\n\nPuedes cambiar de IA con 'npm run configurar-ia' (NVIDIA / OpenRouter).",
       );
     }
     trabajo.paso("generar", "ok");

@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 const esWin = process.platform === "win32";
 const sep = esWin ? ";" : ":";
 const home = os.homedir();
+const raizKit = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Carpetas donde estos CLI suelen quedar instalados y que un cmd/Terminal NUEVO a veces no tiene en el PATH. */
 function carpetasExtra() {
@@ -29,9 +30,9 @@ function carpetasExtra() {
   if (esWin) {
     if (process.env.APPDATA) l.push(path.join(process.env.APPDATA, "npm"));
     if (process.env.LOCALAPPDATA) l.push(path.join(process.env.LOCALAPPDATA, "agy", "bin"));
-    l.push(path.join(home, ".opencode", "bin"));
+    l.push(path.join(home, ".opencode", "bin"), path.join(home, ".opencode-npm"), path.join(home, ".opencode-npm", "bin"));
   } else {
-    l.push(path.join(home, ".mcp-starter-kit", "node", "bin"), path.join(home, ".local", "bin"), path.join(home, ".opencode", "bin"), "/opt/homebrew/bin", "/usr/local/bin");
+    l.push(path.join(home, ".mcp-starter-kit", "node", "bin"), path.join(home, ".local", "bin"), path.join(home, ".opencode", "bin"), path.join(home, ".opencode-npm", "bin"), "/opt/homebrew/bin", "/usr/local/bin");
     const prefijo = process.env.npm_config_prefix;
     if (prefijo) l.push(path.join(prefijo, "bin"));
   }
@@ -67,16 +68,11 @@ const CLIS = {
     nombre: "opencode",
     binarios: esWin ? ["opencode.cmd", "opencode.exe", "opencode.ps1"] : ["opencode"],
     comandoManual: "npm install -g opencode-ai    (mas info: https://opencode.ai)",
-    requiere: "npm",
+    requiere: "node",
     instalar() {
-      let r = spawnSync("npm", ["install", "-g", "opencode-ai"], { stdio: "inherit", shell: esWin });
-      if (esWin || buscar("opencode")) return r;
-      // Mac/Linux: con Node instalado por el .pkg, "-g" suele fallar por permisos (EACCES). Probamos en TU carpeta de usuario.
-      console.log("\nLa instalacion global fallo (normalmente por permisos). Pruebo instalar en tu carpeta de usuario (~/.local), sin administrador...");
-      r = spawnSync("npm", ["install", "-g", "--prefix", path.join(home, ".local"), "opencode-ai"], { stdio: "inherit" });
-      if (buscar("opencode")) return r;
-      console.log("\nPruebo el instalador oficial de opencode (elige solo la version para Intel o Apple Silicon)...");
-      return spawnSync("bash", ["-c", "curl -fsSL https://opencode.ai/install | bash"], { stdio: "inherit" });
+      // Instalador con varios metodos de respaldo (curl, brew, npm con carpeta propia), sin administrador.
+      // Detecta Mac Intel sin AVX2 (opencode no puede abrir ahi) y deja el detalle en ~/mcp-creados/instalacion.log.
+      return spawnSync(process.execPath, [path.join(raizKit, "scripts", "instalar-opencode.mjs"), "--si", "--sin-agy"], { stdio: "inherit" });
     },
   },
   agy: {
@@ -113,6 +109,7 @@ export function buscar(id) {
 }
 
 function hayComando(c) {
+  if (c === "node") return true; // ya estamos corriendo en Node
   const r = spawnSync(esWin ? "where" : "which", [c], { stdio: "ignore", shell: esWin });
   return r.status === 0;
 }

@@ -46,7 +46,7 @@ Copian el kit a tu carpeta de usuario (`mcp-starter-kit`) y abren el instalador.
 
 ## Cómo conectar un modelo en opencode
 
-opencode necesita un modelo. Si no tienes ninguno conectado, el Constructor usa automáticamente los **modelos gratuitos** de opencode. Para usar tu propio proveedor, abre `opencode` una vez y escribe `/connect`.
+opencode necesita un modelo. Si no tienes ninguno conectado, el Constructor usa automáticamente los **modelos gratuitos** de opencode. Para usar tu propio proveedor (NVIDIA u OpenRouter) usa la opción 4 del menú o `npm run configurar-ia` (ver [guía 9](09-instalar-ia-nvidia-openrouter-agy.md)); también sirve `/connect` dentro de opencode.
 
 ## ¿Qué hace por dentro?
 
